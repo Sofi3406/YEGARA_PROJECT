@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Layout/Navbar';
 import Footer from '../../components/Layout/Footer';
@@ -18,6 +18,8 @@ const Home = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loadingCommunity, setLoadingCommunity] = useState(true);
   const navigate = useNavigate();
+  const eventsCarouselRef = useRef(null);
+  const announcementsCarouselRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,7 +65,7 @@ const Home = () => {
 
         const [evRes, anRes] = await Promise.all([
           publicAPI.getEvents({ limit: 3 }),
-          publicAPI.getAnnouncements({ limit: 3 })
+          publicAPI.getAnnouncements({ limit: 10 })
         ]);
 
         if (!isMounted) return;
@@ -98,6 +100,46 @@ const Home = () => {
   );
 
   const formatNumber = (value) => new Intl.NumberFormat().format(value || 0);
+
+  useEffect(() => {
+    const carousel = eventsCarouselRef.current;
+    if (!carousel || events.length <= 1) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      const firstCard = carousel.querySelector('[data-carousel-card]');
+      const cardWidth = firstCard?.getBoundingClientRect().width || carousel.clientWidth;
+      const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+
+      if (carousel.scrollLeft >= maxScrollLeft - 2) {
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+        return;
+      }
+
+      carousel.scrollBy({ left: cardWidth + 16, behavior: 'smooth' });
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [events.length]);
+
+  useEffect(() => {
+    const carousel = announcementsCarouselRef.current;
+    if (!carousel || announcements.length <= 1) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      const firstCard = carousel.querySelector('[data-carousel-card]');
+      const cardWidth = firstCard?.getBoundingClientRect().width || carousel.clientWidth;
+      const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+
+      if (carousel.scrollLeft >= maxScrollLeft - 2) {
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+        return;
+      }
+
+      carousel.scrollBy({ left: cardWidth + 16, behavior: 'smooth' });
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [announcements.length]);
 
   return (
     <div className="min-h-screen bg-[#ececec]">
@@ -150,53 +192,111 @@ const Home = () => {
             <p className="text-slate-600 mt-1">Events and announcements</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <h3 className="font-semibold text-lg">Upcoming Events</h3>
-              <ul className="mt-3 space-y-2">
-                {events.length === 0 ? (
-                  <li className="text-sm text-slate-500">No upcoming events</li>
-                ) : (
-                  events.map((ev) => (
-                    <li key={ev._id} className="text-sm">
-                      <Link to={`/events/${ev._id}`} onClick={(e) => { e.preventDefault(); navigate(`/events/${ev._id}`); }} className="text-slate-800 hover:underline">
-                        {ev.title}
-                      </Link>
-                      <div className="text-xs text-slate-500">{new Date(ev.startDate).toLocaleDateString()}</div>
-                    </li>
-                  ))
-                )}
-              </ul>
+          <div className="space-y-6">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-semibold text-lg md:text-xl">Upcoming Events</h3>
+              </div>
+
+              {events.length === 0 ? (
+                <div className="mt-3 text-sm text-slate-500">No upcoming events</div>
+              ) : (
+                <div ref={eventsCarouselRef} className="mt-3 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
+                  {events.map((ev) => (
+                    <article
+                      key={ev._id}
+                      data-carousel-card
+                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+                    >
+                      <div className="p-2 bg-gradient-to-br from-slate-100 via-white to-cyan-50">
+                        <div className="relative h-56 md:h-72 overflow-hidden rounded-xl border border-white/80 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)] bg-slate-100">
+                        {ev.images?.[0] ? (
+                          <img
+                            src={getMediaUrl(ev.images[0])}
+                            alt={ev.title}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center">
+                            <p className="text-2xl md:text-3xl font-semibold text-slate-700 line-clamp-3">{ev.title}</p>
+                          </div>
+                        )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white">
+                            <p className="text-xs uppercase tracking-[0.28em] text-cyan-200">Event</p>
+                            <Link
+                              to={`/events/${ev._id}`}
+                              onClick={(e) => { e.preventDefault(); navigate(`/events/${ev._id}`); }}
+                              className="mt-2 block text-2xl md:text-4xl font-display font-semibold hover:underline line-clamp-2"
+                            >
+                              {ev.title}
+                            </Link>
+                            <p className="mt-2 text-sm md:text-base text-slate-100">{new Date(ev.startDate).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-3">
                 <Link to="/events" onClick={(e) => { e.preventDefault(); navigate('/events'); }} className="text-sm text-cyan-700 hover:underline">View all events</Link>
               </div>
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <h3 className="font-semibold text-lg">Announcements</h3>
-              <ul className="mt-3 space-y-2">
-                {announcements.length === 0 ? (
-                  <li className="text-sm text-slate-500">No announcements</li>
-                ) : (
-                  announcements.map((a) => (
-                    <li key={a._id} className="text-sm rounded-xl border border-slate-200 bg-white p-3">
-                      {a.image && (
-                        <div className="mb-3 overflow-hidden rounded-lg bg-slate-100 aspect-[4/3] max-h-28 border border-slate-200">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-semibold text-lg md:text-xl">Announcements</h3>
+              </div>
+
+              {announcements.length === 0 ? (
+                <div className="mt-3 text-sm text-slate-500">No announcements</div>
+              ) : (
+                <div ref={announcementsCarouselRef} className="mt-3 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
+                  {announcements.map((a) => (
+                    <article
+                      key={a._id}
+                      data-carousel-card
+                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+                    >
+                      <div className="p-2 bg-gradient-to-br from-slate-100 via-white to-cyan-50">
+                        <div className="relative h-56 md:h-72 overflow-hidden rounded-xl border border-white/80 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)] bg-slate-100">
+                        {a.image ? (
                           <img
                             src={getMediaUrl(a.image)}
                             alt={a.title}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center">
+                            <p className="text-2xl md:text-3xl font-semibold text-slate-700 line-clamp-3">{a.title}</p>
+                          </div>
+                        )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white">
+                            <p className="text-xs uppercase tracking-[0.28em] text-cyan-200">Announcement</p>
+                            <Link
+                              to="/announcements"
+                              onClick={(e) => { e.preventDefault(); navigate('/announcements'); }}
+                              className="mt-2 block text-2xl md:text-4xl font-display font-semibold hover:underline line-clamp-2"
+                            >
+                              {a.title}
+                            </Link>
+                            <p className="mt-2 text-sm md:text-base text-slate-100">{new Date(a.createdAt).toLocaleDateString()}</p>
+                            <p className="mt-2 max-w-3xl text-sm md:text-base text-slate-100 line-clamp-2">{a.message}</p>
+                          </div>
                         </div>
-                      )}
-                      <Link to="/announcements" onClick={(e) => { e.preventDefault(); navigate('/announcements'); }} className="text-slate-800 hover:underline">{a.title}</Link>
-                      <div className="text-xs text-slate-500">{new Date(a.createdAt).toLocaleDateString()}</div>
-                    </li>
-                  ))
-                )}
-              </ul>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-3">
                 <Link to="/announcements" onClick={(e) => { e.preventDefault(); navigate('/announcements'); }} className="text-sm text-cyan-700 hover:underline">View all announcements</Link>
               </div>
