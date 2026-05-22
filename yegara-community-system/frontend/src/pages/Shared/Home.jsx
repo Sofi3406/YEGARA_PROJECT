@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Layout/Navbar';
 import Footer from '../../components/Layout/Footer';
 import { publicAPI } from '../../services/api';
+import { getMediaUrl } from '../../utils/media';
 
 const Home = () => {
   const [snapshot, setSnapshot] = useState({
@@ -13,6 +14,10 @@ const Home = () => {
     updatedAt: null
   });
   const [loadingSnapshot, setLoadingSnapshot] = useState(true);
+  const [events, setEvents] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loadingCommunity, setLoadingCommunity] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
@@ -43,6 +48,39 @@ const Home = () => {
     };
 
     fetchSnapshot();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCommunity = async () => {
+      setLoadingCommunity(true);
+      try {
+
+        const [evRes, anRes] = await Promise.all([
+          publicAPI.getEvents({ limit: 3 }),
+          publicAPI.getAnnouncements({ limit: 3 })
+        ]);
+
+        if (!isMounted) return;
+
+        setEvents(evRes.data?.data || []);
+        setAnnouncements(anRes.data?.data || []);
+      } catch (err) {
+        if (isMounted) {
+          setEvents([]);
+          setAnnouncements([]);
+        }
+      } finally {
+        if (isMounted) setLoadingCommunity(false);
+      }
+    };
+
+    fetchCommunity();
 
     return () => {
       isMounted = false;
@@ -103,6 +141,68 @@ const Home = () => {
                 <p className="mt-3 text-center text-emerald-700 font-bold text-xl tracking-[0.14em] uppercase">Addis Ababa</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-200">
+          <div className="text-center mb-6">
+            <h2 className="text-3xl font-display text-slate-900">Latest from the community</h2>
+            <p className="text-slate-600 mt-1">Events and announcements</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <h3 className="font-semibold text-lg">Upcoming Events</h3>
+              <ul className="mt-3 space-y-2">
+                {events.length === 0 ? (
+                  <li className="text-sm text-slate-500">No upcoming events</li>
+                ) : (
+                  events.map((ev) => (
+                    <li key={ev._id} className="text-sm">
+                      <Link to={`/events/${ev._id}`} onClick={(e) => { e.preventDefault(); navigate(`/events/${ev._id}`); }} className="text-slate-800 hover:underline">
+                        {ev.title}
+                      </Link>
+                      <div className="text-xs text-slate-500">{new Date(ev.startDate).toLocaleDateString()}</div>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <div className="mt-3">
+                <Link to="/events" onClick={(e) => { e.preventDefault(); navigate('/events'); }} className="text-sm text-cyan-700 hover:underline">View all events</Link>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <h3 className="font-semibold text-lg">Announcements</h3>
+              <ul className="mt-3 space-y-2">
+                {announcements.length === 0 ? (
+                  <li className="text-sm text-slate-500">No announcements</li>
+                ) : (
+                  announcements.map((a) => (
+                    <li key={a._id} className="text-sm rounded-xl border border-slate-200 bg-white p-3">
+                      {a.image && (
+                        <div className="mb-3 overflow-hidden rounded-lg bg-slate-100 aspect-[4/3] max-h-28 border border-slate-200">
+                          <img
+                            src={getMediaUrl(a.image)}
+                            alt={a.title}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        </div>
+                      )}
+                      <Link to="/announcements" onClick={(e) => { e.preventDefault(); navigate('/announcements'); }} className="text-slate-800 hover:underline">{a.title}</Link>
+                      <div className="text-xs text-slate-500">{new Date(a.createdAt).toLocaleDateString()}</div>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <div className="mt-3">
+                <Link to="/announcements" onClick={(e) => { e.preventDefault(); navigate('/announcements'); }} className="text-sm text-cyan-700 hover:underline">View all announcements</Link>
+              </div>
+            </div>
+
+            {/* Resources section removed by request */}
           </div>
         </section>
 

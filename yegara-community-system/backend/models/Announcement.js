@@ -14,6 +14,9 @@ const announcementSchema = new mongoose.Schema({
     type: String,
     default: 'General'
   },
+  image: {
+    type: String
+  },
   audienceRoles: {
     type: [String],
     default: ['all']

@@ -5,6 +5,29 @@ const User = require('../models/User');
 const ErrorResponse = require('../utils/errorResponse');
 
 const toWebPath = (filePath = '') => filePath.replace(/\\/g, '/');
+const resolveResourceFilePath = (fileUrl = '') => {
+  const normalized = toWebPath(String(fileUrl).trim());
+  const strippedLeadingSlash = normalized.replace(/^\/+/, '');
+  const uploadsRelative = normalized.replace(/^.*?(uploads\/)/i, 'uploads/');
+  const uploadsRelativeStripped = uploadsRelative.replace(/^\/+/, '');
+
+  const candidates = [
+    normalized,
+    strippedLeadingSlash,
+    uploadsRelative,
+    uploadsRelativeStripped,
+    path.resolve(__dirname, '..', strippedLeadingSlash),
+    path.resolve(__dirname, '..', uploadsRelativeStripped)
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return path.resolve(__dirname, '..', uploadsRelativeStripped || strippedLeadingSlash || normalized);
+};
 const { buildWoredaRegex } = require('../utils/woreda');
 const STAFF_RESOURCE_ROLES = ['officer', 'woreda_admin', 'subcity_admin'];
 
@@ -250,9 +273,7 @@ exports.downloadResource = async (req, res, next) => {
       }
     }
 
-    const filePath = path.isAbsolute(resource.fileUrl)
-      ? resource.fileUrl
-      : path.resolve(__dirname, '..', resource.fileUrl);
+    const filePath = resolveResourceFilePath(resource.fileUrl);
 
     if (!fs.existsSync(filePath)) {
       return next(new ErrorResponse('File not found on server', 404));
@@ -266,3 +287,4 @@ exports.downloadResource = async (req, res, next) => {
     next(err);
   }
 };
+

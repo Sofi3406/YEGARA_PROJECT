@@ -30,6 +30,25 @@ const eventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  guestAttendees: [{
+    fullName: {
+      type: String,
+      trim: true
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true
+    },
+    phone: {
+      type: String,
+      trim: true
+    },
+    registeredAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   maxAttendees: Number,
   status: {
     type: String,

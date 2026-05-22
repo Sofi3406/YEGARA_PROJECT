@@ -1,9 +1,16 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Normalize API base URL so callers can set REACT_APP_API_URL with or without trailing '/api'
+const rawApi = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+let API_URL = rawApi.replace(/\/+$/, ''); // strip trailing slashes
+if (!API_URL.toLowerCase().endsWith('/api')) {
+  API_URL = `${API_URL}/api`;
+}
+
+export const API_BASE = API_URL;
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -81,7 +88,7 @@ export const eventsAPI = {
   update: (id, data) => api.put(`/events/${id}`, data, withFormData(data)),
   delete: (id) => api.delete(`/events/${id}`),
   getByWoreda: (woreda) => api.get(`/events/woreda/${woreda}`),
-  register: (id) => api.post(`/events/${id}/register`)
+  register: (id, data) => api.post(`/events/${id}/register`, data)
 };
 
 // Resources API
@@ -105,7 +112,7 @@ export const meetingsAPI = {
 // Announcements API
 export const announcementsAPI = {
   getAll: () => api.get('/announcements'),
-  create: (data) => api.post('/announcements', data),
+  create: (data) => api.post('/announcements', data, withFormData(data)),
   delete: (id) => api.delete(`/announcements/${id}`)
 };
 
@@ -123,7 +130,11 @@ export const chatbotAPI = {
 
 // Public API
 export const publicAPI = {
-  getLandingStats: () => api.get('/public/landing-stats')
+  getLandingStats: () => api.get('/public/landing-stats'),
+  getEvents: (params) => api.get('/events/public', { params }),
+  getEvent: (id) => api.get(`/events/public/${id}`),
+  getAnnouncements: (params) => api.get('/announcements/public', { params }),
+  getResource: (id) => api.get(`/resources/public/${id}`)
 };
 
 export default api;

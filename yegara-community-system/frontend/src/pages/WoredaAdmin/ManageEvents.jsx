@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { eventsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { getMediaUrl } from '../../utils/media';
 
 const ManageEvents = () => {
   const { user } = useAuth();
@@ -13,7 +14,8 @@ const ManageEvents = () => {
     date: '',
     location: '',
     description: '',
-    meetingLink: ''
+    meetingLink: '',
+    images: []
   });
 
   const fetchEvents = async () => {
@@ -29,8 +31,28 @@ const ManageEvents = () => {
   };
 
   const resetForm = () => {
-    setForm({ title: '', date: '', location: '', description: '', meetingLink: '' });
+    setForm({ title: '', date: '', location: '', description: '', meetingLink: '', images: [] });
     setEditing(null);
+  };
+
+  const buildEventFormData = (eventForm) => {
+    const formData = new FormData();
+
+    Object.entries(eventForm).forEach(([key, value]) => {
+      if (key === 'images') {
+        return;
+      }
+
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, value);
+      }
+    });
+
+    if (eventForm.images?.length > 0) {
+      eventForm.images.forEach((file) => formData.append('images', file));
+    }
+
+    return formData;
   };
 
   const handleSubmit = async (e) => {
@@ -41,11 +63,13 @@ const ManageEvents = () => {
     }
 
     try {
+      const payload = buildEventFormData({ ...form, woreda: user?.woreda });
+
       if (editing) {
-        await eventsAPI.update(editing, form);
+        await eventsAPI.update(editing, payload);
         toast.success('Event updated successfully');
       } else {
-        await eventsAPI.create({ ...form, woreda: user?.woreda });
+        await eventsAPI.create(payload);
         toast.success('Event added successfully');
       }
       resetForm();
@@ -62,7 +86,8 @@ const ManageEvents = () => {
       date: event.date ? event.date.substring(0, 16) : '',
       location: event.location || '',
       description: event.description || '',
-      meetingLink: event.meetingLink || ''
+      meetingLink: event.meetingLink || '',
+      images: []
     });
   };
 
@@ -137,6 +162,20 @@ const ManageEvents = () => {
           />
         </div>
         <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700">Event images</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="input mt-1"
+            onChange={(e) => setForm({ ...form, images: Array.from(e.target.files || []) })}
+          />
+          <p className="mt-1 text-xs text-gray-500">Attach up to 5 images.</p>
+          {form.images?.length > 0 && (
+            <p className="mt-1 text-xs text-primary-700">{form.images.length} image{form.images.length > 1 ? 's' : ''} selected</p>
+          )}
+        </div>
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700">Description</label>
           <textarea
             rows="3"
@@ -198,6 +237,27 @@ const ManageEvents = () => {
                   <button className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50" onClick={() => handleDelete(event._id)}>
                     Delete
                   </button>
+                </div>
+              )}
+
+              {event.images?.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {event.images.slice(0, 3).map((image, index) => (
+                    <a
+                      key={`${event._id}-image-${index}`}
+                      href={getMediaUrl(image)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                    >
+                      <img
+                        src={getMediaUrl(image)}
+                        alt={`Event image ${index + 1} for ${event.title}`}
+                        className="h-28 w-full object-cover transition-transform duration-200 hover:scale-105"
+                        loading="lazy"
+                      />
+                    </a>
+                  ))}
                 </div>
               )}
             </div>

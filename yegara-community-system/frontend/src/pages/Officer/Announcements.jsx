@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { announcementsAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
+import { getMediaUrl } from '../../utils/media';
 
 const Announcements = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -9,7 +10,8 @@ const Announcements = () => {
     title: '',
     message: '',
     category: 'General',
-    audienceRoles: ['all']
+    audienceRoles: ['all'],
+    image: null
   });
 
   const fetchAnnouncements = async () => {
@@ -32,14 +34,18 @@ const Announcements = () => {
     }
 
     try {
-      await announcementsAPI.create({
-        title: form.title,
-        message: form.message,
-        category: form.category,
-        audienceRoles: form.audienceRoles
-      });
+      const payload = new FormData();
+      payload.append('title', form.title);
+      payload.append('message', form.message);
+      payload.append('category', form.category);
+      payload.append('audienceRoles', form.audienceRoles.join(','));
+      if (form.image) {
+        payload.append('image', form.image);
+      }
+
+      await announcementsAPI.create(payload);
       toast.success('Announcement published');
-      setForm({ title: '', message: '', category: 'General', audienceRoles: ['all'] });
+      setForm({ title: '', message: '', category: 'General', audienceRoles: ['all'], image: null });
       fetchAnnouncements();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Unable to publish announcement');
@@ -113,6 +119,18 @@ const Announcements = () => {
           />
         </div>
         <div>
+          <label className="block text-sm font-medium text-gray-700">Announcement image</label>
+          <input
+            type="file"
+            accept="image/*"
+            className="input mt-1"
+            onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })}
+          />
+          {form.image && (
+            <p className="mt-1 text-xs text-primary-700">{form.image.name}</p>
+          )}
+        </div>
+        <div>
           <label className="block text-sm font-medium text-gray-700">Audience</label>
           <div className="mt-2 flex flex-wrap gap-2 text-sm">
             {['resident', 'officer', 'woreda_admin', 'subcity_admin', 'all'].map((role) => (
@@ -142,6 +160,20 @@ const Announcements = () => {
         <div className="space-y-4">
           {announcements.map((item) => (
             <div key={item._id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              {item.image && (
+                <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 aspect-[4/3] max-h-48">
+                  <img
+                    src={getMediaUrl(item.image)}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4 min-w-0">
                   <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">

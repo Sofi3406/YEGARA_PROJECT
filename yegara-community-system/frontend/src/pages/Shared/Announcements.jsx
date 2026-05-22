@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { announcementsAPI } from '../../services/api';
+import { announcementsAPI, publicAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
+import { getMediaUrl } from '../../utils/media';
 
 const Announcements = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -18,7 +19,8 @@ const Announcements = () => {
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const response = await announcementsAPI.getAll();
+      // prefer public endpoint for unauthenticated users
+      const response = await publicAPI.getAnnouncements({ limit: 50 });
       setAnnouncements(response.data.data || []);
     } catch (error) {
       toast.error('Unable to load announcements');
@@ -54,6 +56,20 @@ const Announcements = () => {
         <div className="space-y-4">
           {announcements.map((item) => (
             <div key={item._id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+              {item.image && (
+                <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 aspect-[4/3] max-h-48">
+                  <img
+                    src={getMediaUrl(item.image)}
+                    alt={item.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4 min-w-0">
                   <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { announcementsAPI, eventsAPI, reportsAPI, resourcesAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
+import { getMediaUrl } from '../../utils/media';
 
 const statusStyles = {
   Pending: 'bg-yellow-100 text-yellow-800',
@@ -198,6 +199,17 @@ const Dashboard = () => {
             <div className="mt-4 space-y-4">
               {announcements.map((item) => (
                 <div key={item._id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                  {item.image && (
+                    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 aspect-[4/3] max-h-28">
+                      <img
+                        src={getMediaUrl(item.image)}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-semibold text-gray-900 truncate">{item.title}</h3>
                     <span className="text-xs rounded-full bg-primary-50 text-primary-700 border border-primary-100 px-2 py-1">

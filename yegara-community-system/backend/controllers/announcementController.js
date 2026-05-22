@@ -46,6 +46,24 @@ exports.getAnnouncements = async (req, res, next) => {
   }
 };
 
+// @desc    Get public announcements (read-only)
+// @route   GET /api/announcements/public
+// @access  Public
+exports.getPublicAnnouncements = async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 10;
+
+    const announcements = await Announcement.find({ audienceRoles: { $in: ['all'] } })
+      .populate('createdBy', 'fullName role')
+      .sort('-createdAt')
+      .limit(limit);
+
+    res.status(200).json({ success: true, count: announcements.length, data: announcements });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Create announcement
 // @route   POST /api/announcements
 // @access  Private (Officer/Admin)
@@ -71,6 +89,7 @@ exports.createAnnouncement = async (req, res, next) => {
       title,
       message,
       category: category || 'General',
+      image: req.file ? req.file.path.replace(/\\/g, '/') : undefined,
       audienceRoles: normalizedRoles.length ? normalizedRoles : ['all'],
       woreda: req.user.role === 'woreda_admin' ? req.user.woreda : woreda,
       createdBy: req.user.id

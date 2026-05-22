@@ -117,14 +117,22 @@ const Navbar = () => {
     return '/events';
   };
 
-  const getResourcesLink = () => {
-    if (!user) return '/resources';
+  const getAnnouncementsLink = () => {
+    if (!user) return '/announcements';
 
-    if (user.role === 'resident') {
-      return '/resident/resources';
+    if (user.role === 'officer') {
+      return '/officer/announcements';
     }
 
-    return '/resources';
+    if (user.role === 'woreda_admin') {
+      return '/woreda-admin/announcements';
+    }
+
+    if (user.role === 'subcity_admin') {
+      return '/subcity-admin/announcements';
+    }
+
+    return '/announcements';
   };
 
   const unreadCount = notifications.filter((item) => !item.read).length;
@@ -254,22 +262,24 @@ const Navbar = () => {
               )}
               
               {!isOfficerUser && (
-                <Link
-                  to={getEventsLink()}
+                <button
+                  type="button"
+                  onClick={() => navigate(getEventsLink())}
                   className="text-gray-900 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Events
-                </Link>
+                </button>
               )}
 
-              {!isAdminUser && !isOfficerUser && (
-                <Link
-                  to={getResourcesLink()}
-                  className="text-gray-900 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Resources
-                </Link>
-              )}
+              <button
+                type="button"
+                onClick={() => navigate(getAnnouncementsLink())}
+                className="text-gray-900 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Announcements
+              </button>
+
+              {/* Resources link removed from header */}
             </div>
           </div>
           
@@ -397,22 +407,24 @@ const Navbar = () => {
             )}
             
             {!isOfficerUser && (
-              <Link
-                to={getEventsLink()}
+              <button
+                type="button"
+                onClick={() => { setIsOpen(false); navigate(getEventsLink()); }}
                 className="text-gray-900 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium"
               >
                 Events
-              </Link>
+              </button>
             )}
 
-            {!isAdminUser && !isOfficerUser && (
-              <Link
-                to={getResourcesLink()}
-                className="text-gray-900 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium"
-              >
-                Resources
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={() => { setIsOpen(false); navigate(getAnnouncementsLink()); }}
+              className="text-gray-900 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium"
+            >
+              Announcements
+            </button>
+
+            {/* Resources link removed from mobile menu */}
             
             {user ? (
               <>

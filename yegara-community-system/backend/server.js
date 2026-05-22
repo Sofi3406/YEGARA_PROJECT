@@ -67,7 +67,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Set security headers
-app.use(helmet());
+// Allow the React frontend on a different origin to embed uploaded images from /uploads.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 // Dev logging middleware
 if (process.env.NODE_ENV === 'development') {

@@ -75,6 +75,59 @@ exports.getEvents = async (req, res, next) => {
   }
 };
 
+// @desc    Get public events (read-only)
+// @route   GET /api/events/public
+// @access  Public
+exports.getPublicEvents = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+
+    const baseFilter = { status: { $ne: 'Draft' }, isPublic: { $ne: false } };
+
+    const total = await Event.countDocuments(baseFilter);
+
+    const events = await Event.find(baseFilter)
+      .select('title description date endDate location images woreda status createdAt')
+      .populate('organizer', 'fullName role')
+      .sort('-createdAt')
+      .skip(startIndex)
+      .limit(limit);
+
+    const pagination = {};
+    if (startIndex + events.length < total) pagination.next = { page: page + 1, limit };
+    if (startIndex > 0) pagination.prev = { page: page - 1, limit };
+
+    res.status(200).json({ success: true, count: events.length, pagination, data: events });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get single public event (read-only)
+// @route   GET /api/events/public/:id
+// @access  Public
+exports.getPublicEvent = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id)
+      .select('-attendees')
+      .populate('organizer', 'fullName role');
+
+    if (!event) {
+      return next(new ErrorResponse('Event not found', 404));
+    }
+
+    if (event.isPublic === false) {
+      return next(new ErrorResponse('Event is not public', 403));
+    }
+
+    res.status(200).json({ success: true, data: event });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Get single event
 // @route   GET /api/events/:id
 // @access  Private
@@ -272,19 +325,42 @@ exports.registerForEvent = async (req, res, next) => {
       return next(new ErrorResponse('Event is not open for registration', 400));
     }
 
-    const alreadyRegistered = event.attendees.some(
-      attendee => attendee.toString() === req.user.id
-    );
-
-    if (alreadyRegistered) {
-      return next(new ErrorResponse('You are already registered for this event', 400));
-    }
-
-    if (event.maxAttendees && event.attendees.length >= event.maxAttendees) {
+    const attendeeCount = event.attendees.length + (event.guestAttendees?.length || 0);
+    if (event.maxAttendees && attendeeCount >= event.maxAttendees) {
       return next(new ErrorResponse('Event has reached maximum capacity', 400));
     }
 
-    event.attendees.push(req.user.id);
+    if (req.user) {
+      const alreadyRegistered = event.attendees.some(
+        attendee => attendee.toString() === req.user.id
+      );
+
+      if (alreadyRegistered) {
+        return next(new ErrorResponse('You are already registered for this event', 400));
+      }
+
+      event.attendees.push(req.user.id);
+    } else {
+      const fullName = String(req.body.fullName || '').trim();
+      const email = String(req.body.email || '').trim().toLowerCase();
+      const phone = String(req.body.phone || '').trim();
+
+      if (!fullName || !email) {
+        return next(new ErrorResponse('Full name and email are required for public registration', 400));
+      }
+
+      const alreadyRegistered = (event.guestAttendees || []).some(
+        attendee => attendee.email === email
+      );
+
+      if (alreadyRegistered) {
+        return next(new ErrorResponse('You are already registered for this event', 400));
+      }
+
+      event.guestAttendees = event.guestAttendees || [];
+      event.guestAttendees.push({ fullName, email, phone });
+    }
+
     await event.save();
 
     res.status(200).json({

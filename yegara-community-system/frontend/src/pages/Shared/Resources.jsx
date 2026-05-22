@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { resourcesAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchResources = async () => {
     setLoading(true);
     try {
+      if (!user) {
+        setResources([]);
+        toast.error('Please log in to view resources');
+        return;
+      }
+
       const response = await resourcesAPI.getAll();
       setResources(response.data.data || []);
     } catch (error) {
@@ -20,6 +28,11 @@ const Resources = () => {
 
   const handleDownload = async (resource) => {
     try {
+      if (!user) {
+        toast.error('Please log in to download resources');
+        return;
+      }
+
       const response = await resourcesAPI.download(resource._id);
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);

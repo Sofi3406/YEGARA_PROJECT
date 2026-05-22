@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Footer = ({ compact = false }) => {
   const { user } = useAuth();
   const year = new Date().getFullYear();
+  const navigate = useNavigate();
 
   const getDashboardLink = () => {
     if (!user) return '/';
@@ -22,6 +23,39 @@ const Footer = ({ compact = false }) => {
         return '/';
     }
   };
+
+  const getEventsLink = () => {
+    if (!user) return '/events';
+
+    switch (user.role) {
+      case 'resident':
+        return '/resident/events';
+      case 'officer':
+        return '/officer/events';
+      case 'woreda_admin':
+        return '/woreda-admin/events';
+      case 'subcity_admin':
+        return '/subcity-admin/events';
+      default:
+        return '/events';
+    }
+  };
+
+  const getAnnouncementsLink = () => {
+    if (!user) return '/announcements';
+
+    switch (user.role) {
+      case 'officer':
+        return '/officer/announcements';
+      case 'woreda_admin':
+        return '/woreda-admin/announcements';
+      case 'subcity_admin':
+        return '/subcity-admin/announcements';
+      default:
+        return '/announcements';
+    }
+  };
+
 
   return (
     <footer className="relative overflow-hidden border-t border-slate-800 bg-slate-950 text-slate-200">
@@ -65,9 +99,8 @@ const Footer = ({ compact = false }) => {
               <div>
                 <h4 className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">Explore</h4>
                 <div className="mt-4 space-y-2 text-sm">
-                  <Link to="/events" className="block hover:text-white transition-colors">Events</Link>
-                  <Link to="/announcements" className="block hover:text-white transition-colors">Announcements</Link>
-                  <Link to="/resources" className="block hover:text-white transition-colors">Resources</Link>
+                  <Link to={getEventsLink()} onClick={(e) => { e.preventDefault(); navigate(getEventsLink()); }} className="block hover:text-white transition-colors">Events</Link>
+                  <Link to={getAnnouncementsLink()} onClick={(e) => { e.preventDefault(); navigate(getAnnouncementsLink()); }} className="block hover:text-white transition-colors">Announcements</Link>
                   <Link to={getDashboardLink()} className="block hover:text-white transition-colors">Dashboard</Link>
                 </div>
               </div>

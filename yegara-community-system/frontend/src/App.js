@@ -145,13 +145,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/events" element={<Events />} />
           <Route path="/resources" element={<Resources />} />
-          <Route path="/announcements" element={
-            <ProtectedRoute>
-              <Layout>
-                <Announcements />
-              </Layout>
-            </ProtectedRoute>
-          } />
+          <Route path="/announcements" element={<Announcements />} />
 
           {/* Protected Routes with Layout */}
           <Route

@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { eventsAPI } from '../../services/api';
+import { eventsAPI, publicAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { getMediaUrl } from '../../utils/media';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [guestForm, setGuestForm] = useState({ fullName: '', email: '', phone: '' });
+  const [registering, setRegistering] = useState(false);
+  const { user } = useAuth();
 
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const response = await eventsAPI.getAll();
+      const response = user ? await eventsAPI.getAll() : await publicAPI.getEvents({ limit: 50 });
       setEvents(response.data.data || []);
     } catch (error) {
       toast.error('Unable to load events');
@@ -20,6 +25,11 @@ const Events = () => {
   };
 
   const handleRegister = async (eventId) => {
+    if (!user) {
+      toast.error('Please enter your details to register');
+      return;
+    }
+
     try {
       await eventsAPI.register(eventId);
       toast.success('Registered for event');
@@ -47,6 +57,27 @@ const Events = () => {
     return organizer.fullName ? `${roleLabel} / ${organizer.fullName}` : roleLabel;
   };
 
+  const handleGuestRegister = async () => {
+    if (!selected) return;
+
+    if (!guestForm.fullName.trim() || !guestForm.email.trim()) {
+      toast.error('Full name and email are required');
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      await eventsAPI.register(selected._id, guestForm);
+      toast.success('Registered for event');
+      setGuestForm({ fullName: '', email: '', phone: '' });
+      fetchEvents();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Unable to register');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
   const formatEventTime = (value) => {
     const date = new Date(value);
     return {
@@ -55,6 +86,10 @@ const Events = () => {
       full: date.toLocaleString()
     };
   };
+
+  const primaryEventImage = (event) => (event.images?.length > 0 ? getMediaUrl(event.images[0]) : '');
+
+  const imageTileClass = 'relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm aspect-[4/3]';
 
   if (loading) {
     return (
@@ -81,9 +116,23 @@ const Events = () => {
             {events.map((event) => (
               <button
                 key={event._id}
-                className={`w-full text-left border rounded-2xl p-5 shadow-sm transition-all ${selected?._id === event._id ? 'border-primary-400 bg-primary-50 shadow-md' : 'border-gray-200 bg-white hover:shadow-md'}`}
+                className={`group w-full text-left border rounded-2xl p-5 shadow-sm transition-all ${selected?._id === event._id ? 'border-primary-400 bg-primary-50 shadow-md' : 'border-gray-200 bg-white hover:shadow-md'}`}
                 onClick={() => setSelected(event)}
               >
+                {primaryEventImage(event) && (
+                  <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 aspect-[16/9] shadow-sm">
+                    <img
+                      src={primaryEventImage(event)}
+                      alt={event.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 min-w-0">
                     <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">
@@ -143,14 +192,78 @@ const Events = () => {
                   </a>
                 )}
 
+                {selected.images?.length > 0 && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Event images</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selected.images.map((image, index) => {
+                        const imageUrl = getMediaUrl(image);
+
+                        return (
+                          <a
+                            key={`${selected._id}-image-${index}`}
+                            href={imageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={imageTileClass}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Event image ${index + 1} for ${selected.title}`}
+                              className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-gray-600 leading-relaxed">{selected.description || 'No description available.'}</p>
 
-                <button
-                  onClick={() => handleRegister(selected._id)}
-                  className="btn btn-primary w-full"
-                >
-                  Register
-                </button>
+                {user ? (
+                  <button
+                    onClick={() => handleRegister(selected._id)}
+                    className="btn btn-primary w-full"
+                  >
+                    Register
+                  </button>
+                ) : (
+                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-900">Register without login</p>
+                    <input
+                      className="input"
+                      placeholder="Full name"
+                      value={guestForm.fullName}
+                      onChange={(e) => setGuestForm({ ...guestForm, fullName: e.target.value })}
+                    />
+                    <input
+                      className="input"
+                      placeholder="Email address"
+                      type="email"
+                      value={guestForm.email}
+                      onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                    />
+                    <input
+                      className="input"
+                      placeholder="Phone number (optional)"
+                      value={guestForm.phone}
+                      onChange={(e) => setGuestForm({ ...guestForm, phone: e.target.value })}
+                    />
+                    <button
+                      onClick={handleGuestRegister}
+                      disabled={registering}
+                      className="btn btn-primary w-full"
+                    >
+                      {registering ? 'Registering...' : 'Register'}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="mt-4 text-gray-600">Select an event to view details.</p>
