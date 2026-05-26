@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { io } from 'socket.io-client';
 import { notificationsAPI } from '../../services/api';
@@ -17,9 +17,11 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const profileMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
   const socketRef = useRef(null);
+  const isHomePage = location.pathname === '/';
 
   const formatWoredaLabel = (woreda) => {
     if (!woreda) return 'Woreda';
@@ -96,6 +98,8 @@ const Navbar = () => {
   const isOfficerUser = user?.role === 'officer';
 
   const getEventsLink = () => {
+    if (isHomePage) return '/#events-section';
+
     if (!user) return '/events';
 
     if (user.role === 'resident') {
@@ -118,6 +122,8 @@ const Navbar = () => {
   };
 
   const getAnnouncementsLink = () => {
+    if (isHomePage) return '/#announcements-section';
+
     if (!user) return '/announcements';
 
     if (user.role === 'officer') {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../../components/Layout/Navbar';
 import Footer from '../../components/Layout/Footer';
 import { publicAPI } from '../../services/api';
@@ -17,9 +17,50 @@ const Home = () => {
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingCommunity, setLoadingCommunity] = useState(true);
-  const navigate = useNavigate();
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const [showAllAnnouncements, setShowAllAnnouncements] = useState(false);
+  const location = useLocation();
   const eventsCarouselRef = useRef(null);
   const announcementsCarouselRef = useRef(null);
+
+  const scrollToSection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  useEffect(() => {
+    if (!location.hash) return undefined;
+
+    const sectionId = location.hash.replace('#', '');
+    const animationFrameId = window.requestAnimationFrame(() => {
+      scrollToSection(sectionId);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, [location.hash]);
+
+  useEffect(() => {
+    if (!showAllEvents) return undefined;
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      scrollToSection('events-section');
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, [showAllEvents]);
+
+  useEffect(() => {
+    if (!showAllAnnouncements) return undefined;
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      scrollToSection('announcements-section');
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, [showAllAnnouncements]);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,8 +105,8 @@ const Home = () => {
       try {
 
         const [evRes, anRes] = await Promise.all([
-          publicAPI.getEvents({ limit: 3 }),
-          publicAPI.getAnnouncements({ limit: 10 })
+          publicAPI.getEvents({ limit: 50 }),
+          publicAPI.getAnnouncements({ limit: 50 })
         ]);
 
         if (!isMounted) return;
@@ -163,7 +204,7 @@ const Home = () => {
                   Get Started
                 </Link>
                 <Link
-                  to="/events"
+                  to="/#events-section"
                   className="px-6 py-2.5 rounded-full text-slate-700 font-semibold bg-white hover:bg-slate-100"
                 >
                   Learn More
@@ -186,54 +227,68 @@ const Home = () => {
           </div>
         </section>
 
-        <section className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-200">
+        <section id="events-section" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-200 scroll-mt-24">
           <div className="text-center mb-6">
             <h2 className="text-3xl font-display text-slate-900">Latest from the community</h2>
             <p className="text-slate-600 mt-1">Events and announcements</p>
           </div>
 
           <div className="space-y-6">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5">
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-cyan-50/40 p-4 md:p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="font-semibold text-lg md:text-xl">Upcoming Events</h3>
+                <div>
+                  <h3 className="font-semibold text-lg md:text-xl text-slate-900">Upcoming Events</h3>
+                  <p className="text-xs uppercase tracking-[0.24em] text-cyan-700 mt-1">Live community schedule</p>
+                </div>
               </div>
 
               {events.length === 0 ? (
                 <div className="mt-3 text-sm text-slate-500">No upcoming events</div>
               ) : (
-                <div ref={eventsCarouselRef} className="mt-3 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
+                <div ref={eventsCarouselRef} className="mt-4 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
                   {events.map((ev) => (
                     <article
                       key={ev._id}
                       data-carousel-card
-                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/90 shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_rgba(15,23,42,0.16)]"
                     >
-                      <div className="p-2 bg-gradient-to-br from-slate-100 via-white to-cyan-50">
-                        <div className="relative h-56 md:h-72 overflow-hidden rounded-xl border border-white/80 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)] bg-slate-100">
-                        {ev.images?.[0] ? (
-                          <img
-                            src={getMediaUrl(ev.images[0])}
-                            alt={ev.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center">
-                            <p className="text-2xl md:text-3xl font-semibold text-slate-700 line-clamp-3">{ev.title}</p>
+                      <div className="p-3 bg-gradient-to-br from-slate-100 via-white to-cyan-50/70">
+                        <div className="relative isolate h-60 md:h-80 overflow-hidden rounded-[1.5rem] border border-white/80 bg-slate-100 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                          {ev.images?.[0] ? (
+                            <img
+                              src={getMediaUrl(ev.images[0])}
+                              alt={ev.title}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-700 px-6 text-center">
+                              <p className="max-w-xl text-2xl md:text-4xl font-display font-semibold text-white line-clamp-3">{ev.title}</p>
+                            </div>
+                          )}
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.16),transparent_28%)]" />
+
+                          <div className="absolute top-4 left-4 rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-cyan-100 backdrop-blur-md">
+                            Featured event
                           </div>
-                        )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white">
-                            <p className="text-xs uppercase tracking-[0.28em] text-cyan-200">Event</p>
+
+                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white backdrop-blur-[1px]">
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-cyan-200">
+                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">Event</span>
+                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">{new Date(ev.startDate).toLocaleDateString()}</span>
+                            </div>
                             <Link
-                              to={`/events/${ev._id}`}
-                              onClick={(e) => { e.preventDefault(); navigate(`/events/${ev._id}`); }}
-                              className="mt-2 block text-2xl md:text-4xl font-display font-semibold hover:underline line-clamp-2"
+                              to="/#events-section"
+                              className="mt-3 block text-2xl md:text-4xl font-display font-semibold leading-tight hover:underline underline-offset-4 decoration-cyan-300 line-clamp-2"
                             >
                               {ev.title}
                             </Link>
-                            <p className="mt-2 text-sm md:text-base text-slate-100">{new Date(ev.startDate).toLocaleDateString()}</p>
+                            <p className="mt-3 max-w-2xl text-sm md:text-base text-slate-100/90 line-clamp-2">
+                              {ev.description || 'Stay up to date with upcoming meetings and community activities.'}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -243,52 +298,93 @@ const Home = () => {
               )}
 
               <div className="mt-3">
-                <Link to="/events" onClick={(e) => { e.preventDefault(); navigate('/events'); }} className="text-sm text-cyan-700 hover:underline">View all events</Link>
+                <button
+                  type="button"
+                  onClick={() => setShowAllEvents((prev) => !prev)}
+                  className="text-sm text-cyan-700 hover:underline"
+                >
+                  {showAllEvents ? 'Show less events' : 'View all events'}
+                </button>
               </div>
+
+              {showAllEvents && events.length > 0 && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {events.map((ev) => (
+                    <article key={`${ev._id}-full`} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+                      <div className="h-44 bg-gradient-to-br from-cyan-100 via-white to-slate-100">
+                        {ev.images?.[0] ? (
+                          <img src={getMediaUrl(ev.images[0])} alt={ev.title} className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center px-6 text-center">
+                            <p className="text-xl font-display font-semibold text-slate-700 line-clamp-2">{ev.title}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5">
+                        <p className="text-xs uppercase tracking-[0.28em] text-cyan-700">Event</p>
+                        <h4 className="mt-2 text-xl font-semibold text-slate-900">{ev.title}</h4>
+                        <p className="mt-1 text-sm text-slate-500">{new Date(ev.startDate).toLocaleDateString()}</p>
+                        <p className="mt-3 text-sm text-slate-700 leading-6 line-clamp-4">{ev.description || 'No description available.'}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5">
+            <div id="announcements-section" className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-amber-50/45 p-4 md:p-5 shadow-sm scroll-mt-24">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="font-semibold text-lg md:text-xl">Announcements</h3>
+                <div>
+                  <h3 className="font-semibold text-lg md:text-xl text-slate-900">Announcements</h3>
+                  <p className="text-xs uppercase tracking-[0.24em] text-amber-700 mt-1">Community updates and notices</p>
+                </div>
               </div>
 
               {announcements.length === 0 ? (
                 <div className="mt-3 text-sm text-slate-500">No announcements</div>
               ) : (
-                <div ref={announcementsCarouselRef} className="mt-3 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
+                <div ref={announcementsCarouselRef} className="mt-4 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
                   {announcements.map((a) => (
                     <article
                       key={a._id}
                       data-carousel-card
-                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md"
+                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/90 shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_rgba(15,23,42,0.16)]"
                     >
-                      <div className="p-2 bg-gradient-to-br from-slate-100 via-white to-cyan-50">
-                        <div className="relative h-56 md:h-72 overflow-hidden rounded-xl border border-white/80 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)] bg-slate-100">
-                        {a.image ? (
-                          <img
-                            src={getMediaUrl(a.image)}
-                            alt={a.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center">
-                            <p className="text-2xl md:text-3xl font-semibold text-slate-700 line-clamp-3">{a.title}</p>
+                      <div className="p-3 bg-gradient-to-br from-slate-100 via-white to-amber-50/70">
+                        <div className="relative isolate h-60 md:h-80 overflow-hidden rounded-[1.5rem] border border-white/80 bg-slate-100 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+                          {a.image ? (
+                            <img
+                              src={getMediaUrl(a.image)}
+                              alt={a.title}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-amber-900 via-slate-900 to-slate-700 px-6 text-center">
+                              <p className="max-w-xl text-2xl md:text-4xl font-display font-semibold text-white line-clamp-3">{a.title}</p>
+                            </div>
+                          )}
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.24),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.12),transparent_28%)]" />
+
+                          <div className="absolute top-4 left-4 rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-amber-100 backdrop-blur-md">
+                            Featured update
                           </div>
-                        )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
-                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white">
-                            <p className="text-xs uppercase tracking-[0.28em] text-cyan-200">Announcement</p>
+
+                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white backdrop-blur-[1px]">
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-amber-100">
+                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">Announcement</span>
+                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">{new Date(a.createdAt).toLocaleDateString()}</span>
+                            </div>
                             <Link
-                              to="/announcements"
-                              onClick={(e) => { e.preventDefault(); navigate('/announcements'); }}
-                              className="mt-2 block text-2xl md:text-4xl font-display font-semibold hover:underline line-clamp-2"
+                              to="/#announcements-section"
+                              className="mt-3 block text-2xl md:text-4xl font-display font-semibold leading-tight hover:underline underline-offset-4 decoration-amber-300 line-clamp-2"
                             >
                               {a.title}
                             </Link>
-                            <p className="mt-2 text-sm md:text-base text-slate-100">{new Date(a.createdAt).toLocaleDateString()}</p>
-                            <p className="mt-2 max-w-3xl text-sm md:text-base text-slate-100 line-clamp-2">{a.message}</p>
+                            <p className="mt-3 max-w-2xl text-sm md:text-base text-slate-100/90 line-clamp-3">{a.message}</p>
                           </div>
                         </div>
                       </div>
@@ -298,8 +394,40 @@ const Home = () => {
               )}
 
               <div className="mt-3">
-                <Link to="/announcements" onClick={(e) => { e.preventDefault(); navigate('/announcements'); }} className="text-sm text-cyan-700 hover:underline">View all announcements</Link>
+                <button
+                  type="button"
+                  onClick={() => setShowAllAnnouncements((prev) => !prev)}
+                  className="text-sm text-cyan-700 hover:underline"
+                >
+                  {showAllAnnouncements ? 'Show less announcements' : 'View all announcements'}
+                </button>
               </div>
+
+              {showAllAnnouncements && announcements.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  {announcements.map((a) => (
+                    <article key={`${a._id}-full`} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+                      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr]">
+                        <div className="relative min-h-[220px] bg-gradient-to-br from-amber-100 via-white to-slate-100">
+                          {a.image ? (
+                            <img src={getMediaUrl(a.image)} alt={a.title} className="h-full w-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center px-6 text-center">
+                              <p className="text-xl font-display font-semibold text-slate-700 line-clamp-3">{a.title}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-5 md:p-6">
+                          <p className="text-xs uppercase tracking-[0.28em] text-amber-700">Announcement</p>
+                          <h4 className="mt-2 text-xl font-semibold text-slate-900">{a.title}</h4>
+                          <p className="mt-1 text-sm text-slate-500">{new Date(a.createdAt).toLocaleDateString()}</p>
+                          <p className="mt-4 text-sm text-slate-700 leading-6 line-clamp-5">{a.message}</p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Resources section removed by request */}
