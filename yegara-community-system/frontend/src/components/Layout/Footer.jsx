@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Footer = ({ compact = false }) => {
   const { user } = useAuth();
   const year = new Date().getFullYear();
-  const navigate = useNavigate();
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
 
   const getDashboardLink = () => {
     if (!user) return '/';
@@ -25,6 +26,7 @@ const Footer = ({ compact = false }) => {
   };
 
   const getEventsLink = () => {
+    if (isHomePage) return '/#events-section';
     if (!user) return '/events';
 
     switch (user.role) {
@@ -42,6 +44,7 @@ const Footer = ({ compact = false }) => {
   };
 
   const getAnnouncementsLink = () => {
+    if (isHomePage) return '/#announcements-section';
     if (!user) return '/announcements';
 
     switch (user.role) {
@@ -99,8 +102,8 @@ const Footer = ({ compact = false }) => {
               <div>
                 <h4 className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">Explore</h4>
                 <div className="mt-4 space-y-2 text-sm">
-                  <Link to={getEventsLink()} onClick={(e) => { e.preventDefault(); navigate(getEventsLink()); }} className="block hover:text-white transition-colors">Events</Link>
-                  <Link to={getAnnouncementsLink()} onClick={(e) => { e.preventDefault(); navigate(getAnnouncementsLink()); }} className="block hover:text-white transition-colors">Announcements</Link>
+                  <Link to={getEventsLink()} className="block hover:text-white transition-colors">Events</Link>
+                  <Link to={getAnnouncementsLink()} className="block hover:text-white transition-colors">Announcements</Link>
                   <Link to={getDashboardLink()} className="block hover:text-white transition-colors">Dashboard</Link>
                 </div>
               </div>
