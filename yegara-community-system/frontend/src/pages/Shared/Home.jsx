@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../../components/Layout/Navbar';
 import Footer from '../../components/Layout/Footer';
+import LandingImageCarousel from '../../components/landing/LandingImageCarousel';
 import { publicAPI } from '../../services/api';
 import { getMediaUrl } from '../../utils/media';
+import './Home.css';
 
 const Home = () => {
   const [snapshot, setSnapshot] = useState({
@@ -20,8 +22,26 @@ const Home = () => {
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAllAnnouncements, setShowAllAnnouncements] = useState(false);
   const location = useLocation();
-  const eventsCarouselRef = useRef(null);
-  const announcementsCarouselRef = useRef(null);
+
+  const formatEventDate = (event) => {
+    const value = event?.date || event?.startDate;
+    if (!value) return '';
+    return new Date(value).toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatAnnouncementDate = (item) => {
+    if (!item?.createdAt) return '';
+    return new Date(item.createdAt).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   const scrollToSection = (sectionId) => {
     const section = document.getElementById(sectionId);
@@ -142,46 +162,6 @@ const Home = () => {
 
   const formatNumber = (value) => new Intl.NumberFormat().format(value || 0);
 
-  useEffect(() => {
-    const carousel = eventsCarouselRef.current;
-    if (!carousel || events.length <= 1) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      const firstCard = carousel.querySelector('[data-carousel-card]');
-      const cardWidth = firstCard?.getBoundingClientRect().width || carousel.clientWidth;
-      const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
-
-      if (carousel.scrollLeft >= maxScrollLeft - 2) {
-        carousel.scrollTo({ left: 0, behavior: 'smooth' });
-        return;
-      }
-
-      carousel.scrollBy({ left: cardWidth + 16, behavior: 'smooth' });
-    }, 10000);
-
-    return () => window.clearInterval(intervalId);
-  }, [events.length]);
-
-  useEffect(() => {
-    const carousel = announcementsCarouselRef.current;
-    if (!carousel || announcements.length <= 1) return undefined;
-
-    const intervalId = window.setInterval(() => {
-      const firstCard = carousel.querySelector('[data-carousel-card]');
-      const cardWidth = firstCard?.getBoundingClientRect().width || carousel.clientWidth;
-      const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
-
-      if (carousel.scrollLeft >= maxScrollLeft - 2) {
-        carousel.scrollTo({ left: 0, behavior: 'smooth' });
-        return;
-      }
-
-      carousel.scrollBy({ left: cardWidth + 16, behavior: 'smooth' });
-    }, 10000);
-
-    return () => window.clearInterval(intervalId);
-  }, [announcements.length]);
-
   return (
     <div className="min-h-screen bg-[#ececec]">
       <Navbar />
@@ -227,104 +207,80 @@ const Home = () => {
           </div>
         </section>
 
-        <section id="events-section" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-200 scroll-mt-24">
-          <div className="text-center mb-6">
-            <h2 className="text-3xl font-display text-slate-900">Latest from the community</h2>
-            <p className="text-slate-600 mt-1">Events and announcements</p>
+        <section
+          id="events-section"
+          className="landing-community-section relative p-6 md:p-8 scroll-mt-24"
+        >
+          <div className="relative z-10 text-center mb-8">
+            <p className="text-xs font-bold uppercase tracking-[0.32em] text-cyan-700">Community pulse</p>
+            <h2 className="mt-2 text-3xl md:text-4xl font-display text-slate-900">Latest from the community</h2>
+            <p className="text-slate-600 mt-2 max-w-lg mx-auto">
+              Discover upcoming gatherings and official notices in a rich, sliding showcase.
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-cyan-50/40 p-4 md:p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-lg md:text-xl text-slate-900">Upcoming Events</h3>
-                  <p className="text-xs uppercase tracking-[0.24em] text-cyan-700 mt-1">Live community schedule</p>
+          <div className="relative z-10 space-y-10">
+            <div className="landing-block landing-block--events">
+              <header className="landing-section-head">
+                <div className="landing-section-head__text">
+                  <p className="landing-section-head__eyebrow landing-section-head__eyebrow--events">Live schedule</p>
+                  <h3 className="landing-section-head__title">Upcoming events</h3>
                 </div>
-              </div>
+                {!loadingCommunity && events.length > 0 && (
+                  <span className="landing-section-head__count">{events.length}</span>
+                )}
+              </header>
 
-              {events.length === 0 ? (
-                <div className="mt-3 text-sm text-slate-500">No upcoming events</div>
+              {loadingCommunity ? (
+                <div className="landing-empty animate-pulse">Loading events…</div>
               ) : (
-                <div ref={eventsCarouselRef} className="mt-4 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
-                  {events.map((ev) => (
-                    <article
-                      key={ev._id}
-                      data-carousel-card
-                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/90 shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_rgba(15,23,42,0.16)]"
-                    >
-                      <div className="p-3 bg-gradient-to-br from-slate-100 via-white to-cyan-50/70">
-                        <div className="relative isolate h-60 md:h-80 overflow-hidden rounded-[1.5rem] border border-white/80 bg-slate-100 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-                          {ev.images?.[0] ? (
-                            <img
-                              src={getMediaUrl(ev.images[0])}
-                              alt={ev.title}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              loading="lazy"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-700 px-6 text-center">
-                              <p className="max-w-xl text-2xl md:text-4xl font-display font-semibold text-white line-clamp-3">{ev.title}</p>
-                            </div>
-                          )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.16),transparent_28%)]" />
-
-                          <div className="absolute top-4 left-4 rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-cyan-100 backdrop-blur-md">
-                            Featured event
-                          </div>
-
-                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white backdrop-blur-[1px]">
-                            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-cyan-200">
-                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">Event</span>
-                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">{new Date(ev.startDate).toLocaleDateString()}</span>
-                            </div>
-                            <Link
-                              to="/#events-section"
-                              className="mt-3 block text-2xl md:text-4xl font-display font-semibold leading-tight hover:underline underline-offset-4 decoration-cyan-300 line-clamp-2"
-                            >
-                              {ev.title}
-                            </Link>
-                            <p className="mt-3 max-w-2xl text-sm md:text-base text-slate-100/90 line-clamp-2">
-                              {ev.description || 'Stay up to date with upcoming meetings and community activities.'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <LandingImageCarousel
+                  carouselId="home-events"
+                  items={events}
+                  theme="events"
+                  emptyMessage="No upcoming events yet. Check back soon for community gatherings."
+                  badgeLabel="Featured event"
+                  getImageSrc={(ev) => (ev.images?.[0] ? getMediaUrl(ev.images[0]) : null)}
+                  getTitle={(ev) => ev.title}
+                  getDescription={(ev) => ev.description?.trim() || ''}
+                  getSubtitle={(ev) => {
+                    const parts = [ev.location, ev.woreda && ev.woreda !== 'All Woredas' ? ev.woreda : null].filter(Boolean);
+                    return parts.length ? parts.join(' · ') : null;
+                  }}
+                  getDateLabel={formatEventDate}
+                  getHref={() => '#events-section'}
+                />
               )}
 
-              <div className="mt-3">
+              <div className="landing-block__actions">
                 <button
                   type="button"
                   onClick={() => setShowAllEvents((prev) => !prev)}
-                  className="text-sm text-cyan-700 hover:underline"
+                  className="landing-view-all landing-view-all--events"
                 >
                   {showAllEvents ? 'Show less events' : 'View all events'}
+                  <span className="landing-view-all__icon" aria-hidden="true">→</span>
                 </button>
               </div>
 
               {showAllEvents && events.length > 0 && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="landing-expanded-grid">
                   {events.map((ev) => (
-                    <article key={`${ev._id}-full`} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+                    <article key={`${ev._id}-full`} className="landing-expanded-card">
                       <div className="h-44 bg-gradient-to-br from-cyan-100 via-white to-slate-100">
                         {ev.images?.[0] ? (
                           <img src={getMediaUrl(ev.images[0])} alt={ev.title} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
-                          <div className="flex h-full items-center justify-center px-6 text-center">
-                            <p className="text-xl font-display font-semibold text-slate-700 line-clamp-2">{ev.title}</p>
+                          <div className="flex h-full items-center justify-center px-6 text-center bg-gradient-to-br from-cyan-800 to-slate-900">
+                            <p className="text-xl font-display font-semibold text-white line-clamp-2">{ev.title}</p>
                           </div>
                         )}
                       </div>
                       <div className="p-5">
                         <p className="text-xs uppercase tracking-[0.28em] text-cyan-700">Event</p>
                         <h4 className="mt-2 text-xl font-semibold text-slate-900">{ev.title}</h4>
-                        <p className="mt-1 text-sm text-slate-500">{new Date(ev.startDate).toLocaleDateString()}</p>
-                        <p className="mt-3 text-sm text-slate-700 leading-6 line-clamp-4">{ev.description || 'No description available.'}</p>
+                        <p className="mt-1 text-sm text-slate-500">{formatEventDate(ev)}</p>
+                        <p className="landing-expanded-card__desc">{ev.description || 'No description available.'}</p>
                       </div>
                     </article>
                   ))}
@@ -332,96 +288,64 @@ const Home = () => {
               )}
             </div>
 
-            <div id="announcements-section" className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-amber-50/45 p-4 md:p-5 shadow-sm scroll-mt-24">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-lg md:text-xl text-slate-900">Announcements</h3>
-                  <p className="text-xs uppercase tracking-[0.24em] text-amber-700 mt-1">Community updates and notices</p>
+            <div id="announcements-section" className="landing-block landing-block--announcements scroll-mt-24">
+              <header className="landing-section-head">
+                <div className="landing-section-head__text">
+                  <p className="landing-section-head__eyebrow landing-section-head__eyebrow--announcements">Official notices</p>
+                  <h3 className="landing-section-head__title">Announcements</h3>
                 </div>
-              </div>
+                {!loadingCommunity && announcements.length > 0 && (
+                  <span className="landing-section-head__count">{announcements.length}</span>
+                )}
+              </header>
 
-              {announcements.length === 0 ? (
-                <div className="mt-3 text-sm text-slate-500">No announcements</div>
+              {loadingCommunity ? (
+                <div className="landing-empty animate-pulse">Loading announcements…</div>
               ) : (
-                <div ref={announcementsCarouselRef} className="mt-4 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth">
-                  {announcements.map((a) => (
-                    <article
-                      key={a._id}
-                      data-carousel-card
-                      className="group min-w-full shrink-0 snap-start overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/90 shadow-[0_18px_50px_rgba(15,23,42,0.10)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_rgba(15,23,42,0.16)]"
-                    >
-                      <div className="p-3 bg-gradient-to-br from-slate-100 via-white to-amber-50/70">
-                        <div className="relative isolate h-60 md:h-80 overflow-hidden rounded-[1.5rem] border border-white/80 bg-slate-100 ring-1 ring-slate-200/70 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-                          {a.image ? (
-                            <img
-                              src={getMediaUrl(a.image)}
-                              alt={a.title}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              loading="lazy"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-amber-900 via-slate-900 to-slate-700 px-6 text-center">
-                              <p className="max-w-xl text-2xl md:text-4xl font-display font-semibold text-white line-clamp-3">{a.title}</p>
-                            </div>
-                          )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.24),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.12),transparent_28%)]" />
-
-                          <div className="absolute top-4 left-4 rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-amber-100 backdrop-blur-md">
-                            Featured update
-                          </div>
-
-                          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 text-white backdrop-blur-[1px]">
-                            <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-amber-100">
-                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">Announcement</span>
-                              <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1">{new Date(a.createdAt).toLocaleDateString()}</span>
-                            </div>
-                            <Link
-                              to="/#announcements-section"
-                              className="mt-3 block text-2xl md:text-4xl font-display font-semibold leading-tight hover:underline underline-offset-4 decoration-amber-300 line-clamp-2"
-                            >
-                              {a.title}
-                            </Link>
-                            <p className="mt-3 max-w-2xl text-sm md:text-base text-slate-100/90 line-clamp-3">{a.message}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <LandingImageCarousel
+                  carouselId="home-announcements"
+                  items={announcements}
+                  theme="announcements"
+                  emptyMessage="No announcements yet. Important community updates will appear here."
+                  badgeLabel="Featured update"
+                  getImageSrc={(a) => (a.image ? getMediaUrl(a.image) : null)}
+                  getTitle={(a) => a.title}
+                  getDescription={(a) => a.message?.trim() || ''}
+                  getDateLabel={formatAnnouncementDate}
+                  getHref={() => '#announcements-section'}
+                />
               )}
 
-              <div className="mt-3">
+              <div className="landing-block__actions">
                 <button
                   type="button"
                   onClick={() => setShowAllAnnouncements((prev) => !prev)}
-                  className="text-sm text-cyan-700 hover:underline"
+                  className="landing-view-all landing-view-all--announcements"
                 >
                   {showAllAnnouncements ? 'Show less announcements' : 'View all announcements'}
+                  <span className="landing-view-all__icon" aria-hidden="true">→</span>
                 </button>
               </div>
 
               {showAllAnnouncements && announcements.length > 0 && (
                 <div className="mt-4 space-y-3">
                   {announcements.map((a) => (
-                    <article key={`${a._id}-full`} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
+                    <article key={`${a._id}-full`} className="landing-expanded-card">
                       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr]">
                         <div className="relative min-h-[220px] bg-gradient-to-br from-amber-100 via-white to-slate-100">
                           {a.image ? (
                             <img src={getMediaUrl(a.image)} alt={a.title} className="h-full w-full object-cover" loading="lazy" />
                           ) : (
-                            <div className="flex h-full items-center justify-center px-6 text-center">
-                              <p className="text-xl font-display font-semibold text-slate-700 line-clamp-3">{a.title}</p>
+                            <div className="flex h-full items-center justify-center px-6 text-center bg-gradient-to-br from-amber-800 to-slate-900">
+                              <p className="text-xl font-display font-semibold text-white line-clamp-3">{a.title}</p>
                             </div>
                           )}
                         </div>
                         <div className="p-5 md:p-6">
                           <p className="text-xs uppercase tracking-[0.28em] text-amber-700">Announcement</p>
                           <h4 className="mt-2 text-xl font-semibold text-slate-900">{a.title}</h4>
-                          <p className="mt-1 text-sm text-slate-500">{new Date(a.createdAt).toLocaleDateString()}</p>
-                          <p className="mt-4 text-sm text-slate-700 leading-6 line-clamp-5">{a.message}</p>
+                          <p className="mt-1 text-sm text-slate-500">{formatAnnouncementDate(a)}</p>
+                          <p className="landing-expanded-card__desc">{a.message}</p>
                         </div>
                       </div>
                     </article>
@@ -429,8 +353,6 @@ const Home = () => {
                 </div>
               )}
             </div>
-
-            {/* Resources section removed by request */}
           </div>
         </section>
 
