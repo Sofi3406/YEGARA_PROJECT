@@ -93,34 +93,61 @@ const Events = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600"></div>
       </div>
     );
   }
 
+  const selectedTime = selected ? formatEventTime(selected.date) : null;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-gray-900">Community events</h1>
-        <p className="text-gray-600 mt-2">View upcoming meetings and community activities.</p>
+    <div className="space-y-8">
+      <div className="relative overflow-hidden rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-950 via-amber-900 to-orange-800 px-6 py-8 text-white shadow-xl md:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.26),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.20),transparent_30%)]" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-amber-100">
+              Community calendar
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">Community events</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-amber-50/85 md:text-base">
+              Explore meetings, gatherings, and civic activities in a cleaner layout built to make each event easy to scan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:min-w-[300px] md:grid-cols-1">
+            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-amber-100/80">Available events</p>
+              <p className="mt-1 text-2xl font-semibold">{events.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-amber-100/80">Selection</p>
+              <p className="mt-1 text-sm font-medium text-amber-100">{selected ? 'Event details open' : 'Pick an event to view'}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {events.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm text-gray-600">
-          No upcoming events available at the moment.
+        <div className="rounded-2xl border border-dashed border-amber-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-lg font-semibold text-slate-900">No upcoming events yet</p>
+          <p className="mt-2 text-sm text-slate-500">When administrators publish new events, they will appear here with full details and registration options.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.45fr_0.95fr]">
+          <div className="space-y-4">
             {events.map((event) => (
               <button
                 key={event._id}
-                className={`group w-full text-left border rounded-2xl p-5 shadow-sm transition-all ${selected?._id === event._id ? 'border-primary-400 bg-primary-50 shadow-md' : 'border-gray-200 bg-white hover:shadow-md'}`}
+                className={`group relative w-full overflow-hidden rounded-3xl border p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${selected?._id === event._id ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-200 shadow-amber-100' : 'border-slate-200 bg-white hover:border-amber-200'}`}
                 onClick={() => setSelected(event)}
               >
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300" />
+                <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/2 translate-x-1/2 rounded-full bg-amber-100/50 blur-3xl transition-opacity group-hover:opacity-80" />
+
                 {primaryEventImage(event) && (
-                  <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 aspect-[16/9] shadow-sm">
+                  <div className="relative mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 aspect-[16/9] shadow-sm">
                     <img
                       src={primaryEventImage(event)}
                       alt={event.title}
@@ -135,56 +162,67 @@ const Events = () => {
 
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 min-w-0">
-                    <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">
-                      <span className="text-[10px] tracking-wide">{formatEventTime(event.date).month}</span>
-                      <span className="text-base font-semibold leading-none">{formatEventTime(event.date).day}</span>
+                    <div className="shrink-0 rounded-2xl bg-amber-950 px-3 py-2 text-white shadow-md shadow-amber-950/20">
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-100">{formatEventTime(event.date).month}</span>
+                      <span className="block text-2xl font-semibold leading-none">{formatEventTime(event.date).day}</span>
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">{event.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{formatEventTime(event.date).full}</p>
+                      <h3 className="truncate text-lg font-semibold text-slate-900">{event.title}</h3>
+                      <p className="mt-1 text-sm text-slate-600">{formatEventTime(event.date).full}</p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100 shrink-0">
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                     {event.woreda || 'All Woredas'}
                   </span>
                 </div>
 
-                <p className="mt-3 text-gray-600">{event.description?.slice(0, 140) || 'No description available.'}</p>
-                <p className="mt-3 text-sm text-gray-700 font-medium">{event.location}</p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-4 text-sm leading-7 text-slate-600">{event.description?.slice(0, 140) || 'No description available.'}</p>
+                <p className="mt-3 text-sm font-medium text-slate-700">{event.location}</p>
+                <p className="mt-1 text-xs text-slate-500">
                   Created by: {formatOrganizer(event.organizer)}
                 </p>
               </button>
             ))}
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Event details</h2>
+          <div className="h-fit rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50 lg:sticky lg:top-6">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">Event details</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900">{selected ? 'Selected event' : 'No event selected'}</h2>
+              </div>
+              {selected && selected.woreda && (
+                <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                  {selected.woreda}
+                </span>
+              )}
+            </div>
+
             {selected ? (
-              <div className="mt-4 space-y-4 text-sm text-gray-700">
+              <div className="mt-5 space-y-5 text-sm text-slate-700">
                 <div>
-                  <p className="text-xl font-semibold text-gray-900">{selected.title}</p>
-                  <p className="text-gray-600 mt-1">{formatEventTime(selected.date).full}</p>
+                  <p className="text-2xl font-semibold text-slate-900">{selected.title}</p>
+                  <p className="mt-1 text-slate-600">{selectedTime?.full}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100">
+                  <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                     Scope: {selected.woreda || 'All Woredas'}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-gray-50 text-gray-700 px-3 py-1 text-xs font-medium border border-gray-200">
+                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
                     Organizer: {formatOrganizer(selected.organizer)}
                   </span>
                 </div>
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Location</p>
-                  <p className="text-sm text-gray-800 mt-1">{selected.location}</p>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Location</p>
+                  <p className="mt-1 text-sm text-slate-800">{selected.location}</p>
                 </div>
 
                 {selected.meetingLink && (
                   <a
                     href={selected.meetingLink}
-                    className="inline-flex items-center justify-center rounded-lg bg-primary-600 text-white text-sm font-medium px-4 py-2 hover:bg-primary-700 transition-colors"
+                    className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500"
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -194,7 +232,7 @@ const Events = () => {
 
                 {selected.images?.length > 0 && (
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Event images</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Event images</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {selected.images.map((image, index) => {
                         const imageUrl = getMediaUrl(image);
@@ -216,7 +254,7 @@ const Events = () => {
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
-                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-amber-950/10 via-transparent to-transparent" />
                           </a>
                         );
                       })}
@@ -224,33 +262,33 @@ const Events = () => {
                   </div>
                 )}
 
-                <p className="text-gray-600 leading-relaxed">{selected.description || 'No description available.'}</p>
+                <p className="leading-relaxed text-slate-600">{selected.description || 'No description available.'}</p>
 
                 {user ? (
                   <button
                     onClick={() => handleRegister(selected._id)}
-                    className="btn btn-primary w-full"
+                    className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500"
                   >
                     Register
                   </button>
                 ) : (
-                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="space-y-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
                     <p className="text-sm font-semibold text-slate-900">Register without login</p>
                     <input
-                      className="input"
+                      className="w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                       placeholder="Full name"
                       value={guestForm.fullName}
                       onChange={(e) => setGuestForm({ ...guestForm, fullName: e.target.value })}
                     />
                     <input
-                      className="input"
+                      className="w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                       placeholder="Email address"
                       type="email"
                       value={guestForm.email}
                       onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
                     />
                     <input
-                      className="input"
+                      className="w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                       placeholder="Phone number (optional)"
                       value={guestForm.phone}
                       onChange={(e) => setGuestForm({ ...guestForm, phone: e.target.value })}
@@ -258,7 +296,7 @@ const Events = () => {
                     <button
                       onClick={handleGuestRegister}
                       disabled={registering}
-                      className="btn btn-primary w-full"
+                      className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {registering ? 'Registering...' : 'Register'}
                     </button>
@@ -266,7 +304,10 @@ const Events = () => {
                 )}
               </div>
             ) : (
-              <p className="mt-4 text-gray-600">Select an event to view details.</p>
+              <div className="mt-5 rounded-2xl border border-dashed border-amber-200 bg-amber-50/60 p-5 text-slate-600">
+                <p className="text-sm font-semibold text-slate-900">Select an event to view details.</p>
+                <p className="mt-2 text-sm leading-6">Tap any event on the left to see the description, location, images, and registration options here.</p>
+              </div>
             )}
           </div>
         </div>
