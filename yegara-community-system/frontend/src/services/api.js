@@ -58,6 +58,7 @@ export const reportsAPI = {
   update: (id, data) => api.put(`/reports/${id}`, data, withFormData(data)),
   delete: (id) => api.delete(`/reports/${id}`),
   getMyReports: () => api.get('/reports/my-reports'),
+  getPublicUpdates: () => api.get('/reports/public-updates'),
   getByDepartment: (department) => api.get(`/reports/department/${department}`),
   postUpdate: (id, data) => api.post(`/reports/${id}/updates`, data)
 };

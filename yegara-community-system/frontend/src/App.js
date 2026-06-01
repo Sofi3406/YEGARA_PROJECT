@@ -22,6 +22,7 @@ import ResidentDashboard from './pages/Resident/Dashboard';
 import ReportIssue from './pages/Resident/ReportIssue';
 import MyReports from './pages/Resident/MyReports';
 import TrackReport from './pages/Resident/TrackReport';
+import PublicUpdates from './pages/Resident/PublicUpdates';
 
 // Officer Pages
 import OfficerDashboard from './pages/Officer/Dashboard';
@@ -97,7 +98,7 @@ const Layout = ({ children }) => {
   ]);
 
   const compactSharedRoutes = new Set(['/profile', '/profile/edit']);
-  const residentSharedRoutes = new Set(['/announcements', '/resources', '/events']);
+  const residentSharedRoutes = new Set(['/announcements', '/resources', '/events', '/resident/public-updates']);
 
   const isRoleSectionRoute = compactFooterPrefixes.some((prefix) =>
     location.pathname === prefix || location.pathname.startsWith(`${prefix}/`)
@@ -155,6 +156,7 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="dashboard" element={<ResidentDashboard />} />
+                    <Route path="public-updates" element={<PublicUpdates />} />
                     <Route path="reports" element={<MyReports />} />
                     <Route path="reports/new" element={<ReportIssue />} />
                     <Route path="reports/:id" element={<TrackReport />} />

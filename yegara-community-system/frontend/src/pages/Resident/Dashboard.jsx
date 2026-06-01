@@ -16,6 +16,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [events, setEvents] = useState([]);
+  const [publicUpdates, setPublicUpdates] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,8 @@ const Dashboard = () => {
           eventsAPI.getAll(eventParams)
         ]);
 
-        const [announcementsResponse, resourcesResponse] = await Promise.all([
+        const [publicUpdatesResponse, announcementsResponse, resourcesResponse] = await Promise.all([
+          reportsAPI.getPublicUpdates(),
           announcementsAPI.getAll(),
           resourcesAPI.getAll({ sort: '-createdAt', limit: 3 })
         ]);
@@ -51,6 +53,7 @@ const Dashboard = () => {
 
         setReports(reportsResponse.data?.data || []);
         setEvents(eventsResponse.data?.data || []);
+        setPublicUpdates((publicUpdatesResponse.data?.data || []).slice(0, 3));
         setAnnouncements((announcementsResponse.data?.data || []).slice(0, 3));
         setResources(resourcesResponse.data?.data || []);
       } catch (error) {
@@ -121,11 +124,57 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Public updates</h2>
+            <p className="text-sm text-gray-500 mt-1">Officer updates for reports in your woreda.</p>
+          </div>
+          <Link to="/resident/public-updates" className="text-sm text-primary-600 hover:text-primary-700">
+            View all
+          </Link>
+        </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-24">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : publicUpdates.length === 0 ? (
+          <div className="mt-4 text-gray-500 text-sm">No public updates available right now.</div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {publicUpdates.map((item) => (
+              <div key={item._id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{item.reportTitle}</h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {item.reportCategory} • {item.reportDepartment || 'General'} • {item.woreda}
+                    </p>
+                  </div>
+                  <span className="text-xs rounded-full bg-primary-50 text-primary-700 border border-primary-100 px-2 py-1">
+                    {item.reportStatus}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm text-gray-700 line-clamp-3">{item.latestUpdate?.message}</p>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                  <span>
+                    {item.latestUpdate?.timestamp ? new Date(item.latestUpdate.timestamp).toLocaleString() : 'Update'}
+                  </span>
+                  <Link to={`/resident/reports/${item.reportId}`} className="text-primary-600 hover:text-primary-700 font-medium">
+                    Open report
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Recent reports</h2>
             <Link to="/resident/reports" className="text-sm text-primary-600 hover:text-primary-700">
-              View all
+            <h2 className="text-lg font-semibold text-gray-900">Official announcements</h2>
             </Link>
           </div>
           {loading ? (

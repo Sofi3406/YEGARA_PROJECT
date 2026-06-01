@@ -454,6 +454,70 @@ exports.getMyReports = async (req, res, next) => {
   }
 };
 
+// @desc    Get public updates for the resident's woreda
+// @route   GET /api/reports/public-updates
+// @access  Private
+exports.getPublicUpdates = async (req, res, next) => {
+  try {
+    const woreda = req.user.woreda || req.query.woreda;
+
+    if (!woreda) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+
+    const woredaRegex = buildWoredaRegex(woreda);
+    const query = {
+      'updates.0': { $exists: true },
+      ...(woredaRegex ? { woreda: { $regex: woredaRegex } } : { woreda })
+    };
+
+    const reports = await Report.find(query)
+      .populate('residentId', 'fullName email')
+      .populate('assignedOfficer', 'fullName email department')
+      .populate('updates.updatedBy', 'fullName role department')
+      .sort('-createdAt');
+
+    const updates = reports
+      .map((report) => {
+        const latestUpdate = [...(report.updates || [])].sort(
+          (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)
+        )[0];
+
+        if (!latestUpdate) {
+          return null;
+        }
+
+        return {
+          _id: `${report._id}-${latestUpdate.timestamp || report.createdAt}`,
+          reportId: report._id,
+          reportTitle: report.title,
+          reportCategory: report.category,
+          reportDepartment: report.department,
+          woreda: report.woreda,
+          reportStatus: report.status,
+          createdAt: report.createdAt,
+          resident: report.residentId,
+          assignedOfficer: report.assignedOfficer,
+          latestUpdate
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.latestUpdate.timestamp || 0) - new Date(a.latestUpdate.timestamp || 0));
+
+    res.status(200).json({
+      success: true,
+      count: updates.length,
+      data: updates
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Post update to report
 // @route   POST /api/reports/:id/updates
 // @access  Private (Officer)

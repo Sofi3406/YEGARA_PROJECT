@@ -21,7 +21,7 @@ const ResidentSidebar = ({ onLogout }) => {
     { to: '/resident/reports/new', icon: DocumentArrowUpIcon, label: 'New Report' },
     { to: '/resident/meetings', icon: CalendarIcon, label: 'Virtual Meetings' },
     { to: '/resident/events', icon: CalendarIcon, label: 'Events' },
-    { to: '/announcements', icon: DocumentTextIcon, label: 'Public Updates' },
+    { to: '/resident/public-updates', icon: DocumentTextIcon, label: 'Public Updates' },
     { to: '/resident/resources', icon: DocumentTextIcon, label: 'Resources' },
     { to: '/profile/edit', icon: UserCircleIcon, label: 'Edit Profile' }
   ];

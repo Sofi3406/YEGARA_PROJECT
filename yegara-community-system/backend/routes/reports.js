@@ -9,6 +9,7 @@ const {
   getReportsByWoreda,
   getReportsByDepartment,
   getMyReports,
+  getPublicUpdates,
   postUpdate
 } = require('../controllers/reportController');
 const { authenticate, authorize } = require('../middleware/auth');
@@ -23,6 +24,9 @@ router.route('/')
 
 router.route('/my-reports')
   .get(getMyReports);
+
+router.route('/public-updates')
+  .get(getPublicUpdates);
 
 router.route('/:id')
   .get(getReport)
