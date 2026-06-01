@@ -118,7 +118,8 @@ const ManageEvents = () => {
         setSelectedEvent({
           ...event,
           attendees: registrations?.attendees || [],
-          guestAttendees: registrations?.guestAttendees || []
+          guestAttendees: registrations?.guestAttendees || [],
+          registrationTickets: registrations?.registrationTickets || []
         });
       } catch (regError) {
         if (regError.response?.status === 403) {

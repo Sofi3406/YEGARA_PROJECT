@@ -10,6 +10,7 @@ const {
   getMyOrganizedEvents,
   getRegisterableEvents,
   getEventRegistrations,
+  getMyEventTicket,
   registerForEvent,
   getPublicEvents,
   getPublicEvent
@@ -35,6 +36,7 @@ router.get('/registerable', authorize('officer', 'woreda_admin'), getRegisterabl
 router.get('/woreda/:woreda', getEventsByWoreda);
 
 router.get('/:id/registrations', getEventRegistrations);
+router.get('/:id/my-ticket', getMyEventTicket);
 
 router.route('/:id')
   .get(getEvent)

@@ -5,11 +5,13 @@ import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../../utils/media';
 import {
   canRegisterForEvent,
+  buildTicketFromEvent,
   getRegistrationBlockReason,
   getRegistrationStatus,
   getSpotsLeft,
   isUserRegisteredForEvent
 } from '../../utils/eventRegistrations';
+import EventRegistrationTicket from '../../components/events/EventRegistrationTicket';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
@@ -17,6 +19,7 @@ const Events = () => {
   const [selected, setSelected] = useState(null);
   const [guestForm, setGuestForm] = useState({ fullName: '', email: '', phone: '' });
   const [registering, setRegistering] = useState(false);
+  const [activeTicket, setActiveTicket] = useState(null);
   const { user } = useAuth();
 
   const usesRegisterableFeed = user?.role === 'officer' || user?.role === 'woreda_admin';
@@ -52,8 +55,14 @@ const Events = () => {
     }
 
     try {
-      await eventsAPI.register(eventId);
-      toast.success('Registered for event');
+      const response = await eventsAPI.register(eventId);
+      const ticket = response.data?.ticket || null;
+      if (ticket) {
+        setActiveTicket(ticket);
+        toast.success('Registered! Your entrance pass is ready.');
+      } else {
+        toast.success('Registered for event');
+      }
       const data = await loadEvents();
       setEvents(data);
       const updated = data.find((event) => event._id === eventId);
@@ -63,9 +72,39 @@ const Events = () => {
     }
   };
 
+  const loadTicketForSelected = async (event) => {
+    if (!event?._id) return null;
+    if (event.myEntranceCode) {
+      return buildTicketFromEvent(event, user);
+    }
+    if (!user) return null;
+    try {
+      const response = await eventsAPI.getMyTicket(event._id);
+      return response.data?.data || null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const handleShowPass = async () => {
+    const ticket = buildTicketFromEvent(selected, user) || (await loadTicketForSelected(selected));
+    if (ticket) {
+      setActiveTicket(ticket);
+    } else {
+      toast.error('Entrance pass not found for this registration');
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
   }, [user?.role]);
+
+  useEffect(() => {
+    if (!selected || !isUserRegisteredForEvent(selected, user) || !selected.myEntranceCode) {
+      return;
+    }
+    setActiveTicket(buildTicketFromEvent(selected, user));
+  }, [selected?._id, selected?.myEntranceCode, user?.fullName, user?.email]);
 
   const formatOrganizer = (organizer) => {
     if (!organizer) return 'Admin';
@@ -91,8 +130,14 @@ const Events = () => {
 
     setRegistering(true);
     try {
-      await eventsAPI.register(selected._id, guestForm);
-      toast.success('Registered for event');
+      const response = await eventsAPI.register(selected._id, guestForm);
+      const ticket = response.data?.ticket || null;
+      if (ticket) {
+        setActiveTicket(ticket);
+        toast.success('Registered! Save your entrance code.');
+      } else {
+        toast.success('Registered for event');
+      }
       setGuestForm({ fullName: '', email: '', phone: '' });
       fetchEvents();
     } catch (error) {
@@ -329,12 +374,31 @@ const Events = () => {
 
                 <p className="leading-relaxed text-slate-600">{selected.description || 'No description available.'}</p>
 
+                {activeTicket?.eventId === selected._id && (
+                  <EventRegistrationTicket
+                    ticket={activeTicket}
+                    onClose={() => setActiveTicket(null)}
+                    compact
+                  />
+                )}
+
                 {user ? (
                   <div className="space-y-2">
                     {selectedRegistered ? (
-                      <div className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800">
-                        You are registered for this event
-                      </div>
+                      <>
+                        <div className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800">
+                          You are registered for this event
+                        </div>
+                        {!activeTicket && (
+                          <button
+                            type="button"
+                            onClick={handleShowPass}
+                            className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+                          >
+                            View entrance pass
+                          </button>
+                        )}
+                      </>
                     ) : selectedFull ? (
                       <div className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-800">
                         This event is full
@@ -382,6 +446,9 @@ const Events = () => {
                     >
                       {registering ? 'Registering...' : 'Register'}
                     </button>
+                    {activeTicket?.eventId === selected._id && (
+                      <EventRegistrationTicket ticket={activeTicket} compact />
+                    )}
                   </div>
                 )}
               </div>

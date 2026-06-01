@@ -45,13 +45,31 @@ export const canRegisterForEvent = (event, user) => {
 };
 
 export const isUserRegisteredForEvent = (event, user) => {
-  if (!event) return Boolean(event?.isRegistered);
+  if (!event) return false;
   if (typeof event.isRegistered === 'boolean') return event.isRegistered;
+  if (event.myEntranceCode) return true;
 
   const userId = getCurrentUserId(user);
   if (!userId || !Array.isArray(event.attendees)) return false;
 
   return event.attendees.some((attendee) => normalizeId(attendee) === userId);
+};
+
+export const buildTicketFromEvent = (event, user) => {
+  if (!event?.myEntranceCode) return null;
+
+  return {
+    entranceCode: event.myEntranceCode,
+    eventId: event._id,
+    eventTitle: event.title,
+    eventDate: event.date,
+    eventLocation: event.location,
+    eventWoreda: event.woreda,
+    attendeeName: user?.fullName || 'Guest',
+    attendeeEmail: user?.email || '',
+    attendeeRole: user?.role || 'guest',
+    registeredAt: event.myRegisteredAt || new Date().toISOString()
+  };
 };
 
 export const getRegistrationBlockReason = (event, user) => {

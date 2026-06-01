@@ -4,15 +4,23 @@ const Notification = require('../models/Notification');
 const ErrorResponse = require('../utils/errorResponse');
 const { buildWoredaRegex } = require('../utils/woreda');
 const { validateRegistrationEligibility } = require('../utils/eventRegistrationEligibility');
+const {
+  findUserTicket,
+  findGuestTicket,
+  isUserRegistered,
+  generateUniqueEntranceCode,
+  buildTicketPayload
+} = require('../utils/eventTickets');
 
 const toWebPath = (filePath = '') => filePath.replace(/\\/g, '/');
 const countEventRegistrations = (event) => {
   if (!event) return 0;
 
+  const ticketCount = Array.isArray(event.registrationTickets) ? event.registrationTickets.length : 0;
   const attendeeCount = Array.isArray(event.attendees) ? event.attendees.length : 0;
   const guestCount = Array.isArray(event.guestAttendees) ? event.guestAttendees.length : 0;
 
-  return attendeeCount + guestCount;
+  return Math.max(ticketCount, attendeeCount + guestCount);
 };
 
 const getRegistrationCount = (event) => {
@@ -38,14 +46,17 @@ const serializeEvent = (event) => {
 const serializeEventSummary = (event, userId) => {
   const serialized = serializeEvent(event);
 
-  if (userId && Array.isArray(event.attendees)) {
-    serialized.isRegistered = event.attendees.some(
-      (attendee) => normalizeId(attendee) === normalizeId(userId)
-    );
+  if (userId) {
+    const ticket = findUserTicket(event, userId);
+    serialized.isRegistered = isUserRegistered(event, userId);
+    if (ticket?.entranceCode) {
+      serialized.myEntranceCode = ticket.entranceCode;
+    }
   }
 
   delete serialized.attendees;
   delete serialized.guestAttendees;
+  delete serialized.registrationTickets;
   return serialized;
 };
 
@@ -78,6 +89,7 @@ const serializeEventForUser = (event, user) => {
   if (!canViewEventRegistrations(user, event)) {
     delete serialized.attendees;
     delete serialized.guestAttendees;
+    delete serialized.registrationTickets;
   }
 
   return serialized;
@@ -461,7 +473,8 @@ exports.getEventRegistrations = async (req, res, next) => {
   try {
     const event = await Event.findById(req.params.id)
       .populate('organizer', 'fullName email role')
-      .populate('attendees', 'fullName email phone');
+      .populate('attendees', 'fullName email phone')
+      .populate('registrationTickets.user', 'fullName email phone role');
 
     if (!event) {
       return next(new ErrorResponse('Event not found', 404));
@@ -478,8 +491,45 @@ exports.getEventRegistrations = async (req, res, next) => {
         title: event.title,
         registrationCount: getRegistrationCount(event),
         attendees: event.attendees || [],
-        guestAttendees: event.guestAttendees || []
+        guestAttendees: event.guestAttendees || [],
+        registrationTickets: event.registrationTickets || []
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get current user's event entrance ticket
+// @route   GET /api/events/:id/my-ticket
+// @access  Private
+exports.getMyEventTicket = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return next(new ErrorResponse('Event not found', 404));
+    }
+
+    const ticket = findUserTicket(event, req.user.id);
+
+    if (!ticket) {
+      return next(new ErrorResponse('No registration ticket found for this event', 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: buildTicketPayload(
+        event,
+        {
+          fullName: req.user.fullName,
+          email: req.user.email,
+          role: req.user.role,
+          type: 'user'
+        },
+        ticket.entranceCode,
+        ticket.registeredAt
+      )
     });
   } catch (err) {
     next(err);
@@ -501,10 +551,12 @@ exports.registerForEvent = async (req, res, next) => {
       return next(new ErrorResponse('Event is not open for registration', 400));
     }
 
-    const attendeeCount = event.attendees.length + (event.guestAttendees?.length || 0);
+    const attendeeCount = countEventRegistrations(event);
     if (event.maxAttendees && attendeeCount >= event.maxAttendees) {
       return next(new ErrorResponse('Event has reached maximum capacity', 400));
     }
+
+    let ticketPayload = null;
 
     if (req.user) {
       const eligibility = validateRegistrationEligibility(req.user, event);
@@ -512,16 +564,36 @@ exports.registerForEvent = async (req, res, next) => {
         return next(new ErrorResponse(eligibility.reason, 403));
       }
 
-      const alreadyRegistered = event.attendees.some(
-        attendee => attendee.toString() === req.user.id
-      );
-
-      if (alreadyRegistered) {
+      if (isUserRegistered(event, req.user.id)) {
         return next(new ErrorResponse('You are already registered for this event', 400));
       }
 
+      const entranceCode = generateUniqueEntranceCode(event);
+      const registeredAt = new Date();
+
       event.attendees.push(req.user.id);
-      event.attendeeCount = countEventRegistrations(event);
+      event.registrationTickets = event.registrationTickets || [];
+      event.registrationTickets.push({
+        user: req.user.id,
+        fullName: req.user.fullName,
+        email: req.user.email,
+        phone: req.user.phone,
+        type: 'user',
+        entranceCode,
+        registeredAt
+      });
+
+      ticketPayload = buildTicketPayload(
+        event,
+        {
+          fullName: req.user.fullName,
+          email: req.user.email,
+          role: req.user.role,
+          type: 'user'
+        },
+        entranceCode,
+        registeredAt
+      );
     } else {
       const fullName = String(req.body.fullName || '').trim();
       const email = String(req.body.email || '').trim().toLowerCase();
@@ -531,24 +603,45 @@ exports.registerForEvent = async (req, res, next) => {
         return next(new ErrorResponse('Full name and email are required for public registration', 400));
       }
 
-      const alreadyRegistered = (event.guestAttendees || []).some(
-        attendee => attendee.email === email
-      );
+      const alreadyRegistered =
+        (event.guestAttendees || []).some((attendee) => attendee.email === email) ||
+        Boolean(findGuestTicket(event, email));
 
       if (alreadyRegistered) {
         return next(new ErrorResponse('You are already registered for this event', 400));
       }
 
+      const entranceCode = generateUniqueEntranceCode(event);
+      const registeredAt = new Date();
+
       event.guestAttendees = event.guestAttendees || [];
-      event.guestAttendees.push({ fullName, email, phone });
-      event.attendeeCount = countEventRegistrations(event);
+      event.guestAttendees.push({ fullName, email, phone, registeredAt });
+      event.registrationTickets = event.registrationTickets || [];
+      event.registrationTickets.push({
+        fullName,
+        email,
+        phone,
+        type: 'guest',
+        entranceCode,
+        registeredAt
+      });
+
+      ticketPayload = buildTicketPayload(
+        event,
+        { fullName, email, role: 'guest', type: 'guest' },
+        entranceCode,
+        registeredAt
+      );
     }
+
+    event.attendeeCount = countEventRegistrations(event);
 
     await event.save();
 
     res.status(200).json({
       success: true,
-      data: event
+      data: serializeEventSummary(event, req.user?.id),
+      ticket: ticketPayload
     });
   } catch (err) {
     next(err);

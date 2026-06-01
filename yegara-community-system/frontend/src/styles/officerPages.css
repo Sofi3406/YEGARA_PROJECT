@@ -1096,3 +1096,140 @@
 .portal-announce-thumb .officer-chip {
   margin-top: 0.55rem;
 }
+
+/* Event registration entrance pass */
+
+.event-ticket {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  background: linear-gradient(145deg, #451a03 0%, #78350f 45%, #c2410c 100%);
+  color: #fff;
+  box-shadow: 0 20px 40px -16px rgba(69, 26, 3, 0.55);
+}
+
+.event-ticket--compact {
+  max-width: 100%;
+}
+
+.event-ticket__glow {
+  position: absolute;
+  top: -3rem;
+  right: -2rem;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.event-ticket__header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem 0.75rem;
+}
+
+.event-ticket__eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #fde68a;
+}
+
+.event-ticket__title {
+  margin-top: 0.35rem;
+  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.event-ticket__close {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.event-ticket__body {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem 1.35rem 1rem;
+}
+
+.event-ticket__code-wrap {
+  border-radius: 1rem;
+  border: 1px dashed rgba(253, 230, 138, 0.65);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1rem 1.15rem;
+  text-align: center;
+}
+
+.event-ticket__code-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #fde68a;
+}
+
+.event-ticket__code {
+  margin-top: 0.45rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #fff;
+}
+
+.event-ticket__copy {
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(253, 230, 138, 0.45);
+  background: rgba(253, 230, 138, 0.15);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fef3c7;
+}
+
+.event-ticket__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+  margin-top: 1rem;
+}
+
+.event-ticket__meta-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(254, 243, 199, 0.75);
+}
+
+.event-ticket__meta-value {
+  margin-top: 0.2rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #fff;
+}
+
+.event-ticket__footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.85rem 1.35rem 1.15rem;
+  font-size: 0.75rem;
+  color: rgba(254, 243, 199, 0.85);
+  text-align: center;
+}

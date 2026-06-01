@@ -92,7 +92,8 @@ export const eventsAPI = {
   update: (id, data) => api.put(`/events/${id}`, data, withFormData(data)),
   delete: (id) => api.delete(`/events/${id}`),
   getByWoreda: (woreda) => api.get(`/events/woreda/${encodeURIComponent(woreda)}`),
-  register: (id, data) => api.post(`/events/${id}/register`, data)
+  register: (id, data) => api.post(`/events/${id}/register`, data),
+  getMyTicket: (id) => api.get(`/events/${id}/my-ticket`)
 };
 
 // Resources API
