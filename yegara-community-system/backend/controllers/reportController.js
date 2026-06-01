@@ -119,7 +119,16 @@ exports.getReport = async (req, res, next) => {
     }
     
     // Check if user is authorized to view this report
-    if (req.user.role === 'resident' && report.residentId._id.toString() !== req.user.id) {
+    const reportResidentId = report.residentId?._id || report.residentId;
+
+    const isSameWoredaResident =
+      req.user.role === 'resident' &&
+      normalizeWoreda(report.woreda) === normalizeWoreda(req.user.woreda);
+
+    if (
+      req.user.role === 'resident' &&
+      (!reportResidentId || (reportResidentId.toString() !== req.user.id && !isSameWoredaResident))
+    ) {
       return next(new ErrorResponse('Not authorized to access this report', 403));
     }
     

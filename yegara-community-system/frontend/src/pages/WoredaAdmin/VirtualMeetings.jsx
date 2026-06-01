@@ -157,187 +157,242 @@ const VirtualMeetings = () => {
     return String(creatorId || '') === String(user?._id || '');
   };
 
+  const totalParticipants = meetings.reduce((count, meeting) => count + (meeting.participants?.length || 0), 0);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-gray-900">Virtual meetings</h1>
-        <p className="text-gray-600 mt-2">
+    <div className="space-y-8 max-w-7xl">
+      <div className="relative overflow-hidden rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-950 via-amber-900 to-orange-800 px-6 py-8 text-white shadow-xl md:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.24),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.18),transparent_30%)]" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-amber-100">
+              Meeting center
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">Virtual meetings</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-amber-50/85 md:text-base">
           {canManageMeetings
             ? 'Schedule online discussions, notify participants, and manage existing meetings.'
             : 'Meetings you are invited to will appear here.'}
-        </p>
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:min-w-[320px]">
+            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-amber-100/80">Meetings</p>
+              <p className="mt-1 text-2xl font-semibold">{meetings.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-xs uppercase tracking-[0.18em] text-amber-100/80">Participants</p>
+              <p className="mt-1 text-2xl font-semibold">{totalParticipants}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {canManageMeetings && (
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Meeting title</label>
-          <input
-            className="input mt-1"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Date & time</label>
-          <input
-            type="datetime-local"
-            className="input mt-1"
-            value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-          />
-        </div>
-        {isSubcityAdmin && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Meeting scope</label>
-            <input
-              className="input mt-1"
-              placeholder="All Woredas or specific woreda"
-              value={form.woreda}
-              onChange={(e) => setForm({ ...form, woreda: e.target.value })}
-            />
-            <p className="text-xs text-gray-500 mt-1">Leave blank to create a system-wide meeting.</p>
+        <form onSubmit={handleSubmit} className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50 md:p-8">
+          <div className="border-b border-slate-100 pb-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Schedule meeting</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">
+              {editingMeetingId ? 'Update an existing meeting' : 'Create a new virtual meeting'}
+            </h2>
           </div>
-        )}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Participants</label>
-          <input
-            className="input mt-1"
-              placeholder="Comma-separated emails (optional if role buttons are selected)"
-            value={form.participants}
-            onChange={(e) => setForm({ ...form, participants: e.target.value })}
-          />
-          <div className="mt-2 flex flex-wrap gap-2 text-sm">
-              {[
-                { value: 'resident', label: 'Resident' },
-                { value: 'officer', label: 'Officer' },
-                { value: 'woreda_admin', label: 'Woreda Admin' },
-                { value: 'all', label: 'All' }
-              ].map((role) => (
-              <button
-                  key={role.value}
-                type="button"
-                  onClick={() => handleRoleToggle(role.value)}
-                  className={`px-3 py-1 rounded-full border ${form.roles.includes(role.value) ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-600 border-gray-300'}`}
-              >
-                  {role.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Meeting link</label>
-          <input
-            className="input mt-1"
-            value={form.link}
-            onChange={(e) => setForm({ ...form, link: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            rows="3"
-            className="input mt-1"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-2">
-            <div className="flex items-center gap-3">
-              <button type="submit" className="btn btn-primary">
-                {editingMeetingId ? 'Update meeting' : 'Schedule meeting'}
-              </button>
-              {editingMeetingId && (
-                <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                  Cancel edit
-                </button>
-              )}
+
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700">Meeting title</label>
+              <input
+                className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Community consultation"
+              />
             </div>
-        </div>
-      </form>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700">Date & time</label>
+              <input
+                type="datetime-local"
+                className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+              />
+            </div>
+
+            {isSubcityAdmin && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Meeting scope</label>
+                <input
+                  className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                  placeholder="All Woredas or specific woreda"
+                  value={form.woreda}
+                  onChange={(e) => setForm({ ...form, woreda: e.target.value })}
+                />
+                <p className="mt-1 text-xs text-slate-500">Leave blank to create a system-wide meeting.</p>
+              </div>
+            )}
+
+            <div className={isSubcityAdmin ? '' : 'md:col-span-2'}>
+              <label className="block text-sm font-semibold text-slate-700">Participants</label>
+              <input
+                className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                placeholder="Comma-separated emails (optional if role buttons are selected)"
+                value={form.participants}
+                onChange={(e) => setForm({ ...form, participants: e.target.value })}
+              />
+              <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                {[
+                  { value: 'resident', label: 'Resident' },
+                  { value: 'officer', label: 'Officer' },
+                  { value: 'woreda_admin', label: 'Woreda Admin' },
+                  { value: 'all', label: 'All' }
+                ].map((role) => (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => handleRoleToggle(role.value)}
+                    className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${form.roles.includes(role.value)
+                      ? 'border-amber-600 bg-amber-600 text-white shadow-sm'
+                      : 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100'
+                    }`}
+                  >
+                    {role.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700">Meeting link</label>
+              <input
+                className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                placeholder="https://meet.google.com/..."
+                value={form.link}
+                onChange={(e) => setForm({ ...form, link: e.target.value })}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700">Description</label>
+              <textarea
+                rows="4"
+                className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                placeholder="Add the agenda, purpose, or key topics to discuss"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="submit" className="rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500">
+                  {editingMeetingId ? 'Update meeting' : 'Schedule meeting'}
+                </button>
+                {editingMeetingId && (
+                  <button type="button" className="rounded-xl border border-amber-200 bg-white px-5 py-3 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50" onClick={resetForm}>
+                    Cancel edit
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </form>
       )}
 
       {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+        <div className="flex h-32 items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-amber-600"></div>
         </div>
       ) : meetings.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm text-gray-600">
-          No meetings scheduled yet.
+        <div className="rounded-3xl border border-amber-100 bg-white p-8 text-center shadow-lg shadow-amber-50">
+          <p className="text-base font-medium text-slate-900">No meetings scheduled yet.</p>
+          <p className="mt-2 text-sm text-slate-600">Create the first virtual meeting to invite participants and share the link.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {meetings.map((meeting) => (
-            <div key={meeting._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-4 min-w-0">
-                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-16 h-16 flex flex-col items-center justify-center shadow-sm">
-                    <span className="text-[11px] tracking-wide">{formatMeetingTime(meeting.scheduledAt).month}</span>
-                    <span className="text-lg font-semibold leading-none">{formatMeetingTime(meeting.scheduledAt).day}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">{meeting.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{formatMeetingTime(meeting.scheduledAt).full}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100">
-                        Scope: {meeting.woreda || 'All Woredas'}
-                      </span>
+        <div className="grid gap-5">
+          {meetings.map((meeting) => {
+            const time = formatMeetingTime(meeting.scheduledAt);
+
+            return (
+              <div key={meeting._id} className="overflow-hidden rounded-3xl border border-amber-100 bg-white shadow-lg shadow-amber-50 transition-shadow hover:shadow-xl">
+                <div className="border-b border-amber-50 bg-gradient-to-r from-amber-50 via-white to-orange-50 p-5 md:p-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-amber-600 to-orange-600 text-white shadow-md shadow-amber-200">
+                        <span className="text-[11px] font-medium tracking-[0.18em]">{time.month}</span>
+                        <span className="text-2xl font-semibold leading-none">{time.day}</span>
+                      </div>
+
+                      <div className="min-w-0">
+                        <h3 className="truncate text-xl font-semibold text-slate-900">{meeting.title}</h3>
+                        <p className="mt-1 text-sm text-slate-600">{time.full}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                            Scope: {meeting.woreda || 'All Woredas'}
+                          </span>
+                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                            {meeting.participants?.length || 0} participants
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    <a
+                      href={meeting.meetingLink}
+                      className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Join meeting
+                    </a>
                   </div>
                 </div>
 
-                <a
-                  href={meeting.meetingLink}
-                  className="inline-flex items-center justify-center rounded-lg bg-primary-600 text-white text-sm font-medium px-4 py-2 hover:bg-primary-700 transition-colors"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Join meeting
-                </a>
-              </div>
+                <div className="space-y-5 p-5 md:p-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Participants</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(meeting.participants || []).length > 0 ? (
+                        meeting.participants.map((participant, index) => (
+                          <span
+                            key={`${meeting._id}-participant-${index}`}
+                            className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-medium text-slate-700"
+                          >
+                            {getParticipantLabel(participant)}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-slate-500">No participants assigned.</span>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="mt-4 border-t border-gray-100 pt-4">
-                <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase mb-2">Participants</p>
-                <div className="flex flex-wrap gap-2">
-                  {(meeting.participants || []).length > 0 ? (
-                    meeting.participants.map((participant, index) => (
-                      <span
-                        key={`${meeting._id}-participant-${index}`}
-                        className="inline-flex items-center rounded-md bg-gray-50 text-gray-700 px-2.5 py-1 text-xs border border-gray-200"
+                  {meeting.description && (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm leading-6 text-slate-700">
+                      {meeting.description}
+                    </div>
+                  )}
+
+                  {canManageMeetings && isMeetingOwner(meeting) && (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => handleEditMeeting(meeting)}
+                        className="inline-flex items-center rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50"
                       >
-                        {getParticipantLabel(participant)}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-gray-500">No participants assigned.</span>
+                        Edit meeting
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMeeting(meeting._id)}
+                        className="inline-flex items-center rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
+                      >
+                        Delete meeting
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
-
-              {meeting.description && (
-                <div className="mt-4 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                  {meeting.description}
-                </div>
-              )}
-
-              {canManageMeetings && isMeetingOwner(meeting) && (
-                <div className="mt-4 flex items-center gap-3">
-                  <button
-                    onClick={() => handleEditMeeting(meeting)}
-                    className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50"
-                  >
-                    Edit meeting
-                  </button>
-                  <button
-                    onClick={() => handleDeleteMeeting(meeting._id)}
-                    className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
-                  >
-                    Delete meeting
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
