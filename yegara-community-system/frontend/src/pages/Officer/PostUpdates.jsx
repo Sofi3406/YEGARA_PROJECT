@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { reportsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import {
+  OfficerPage,
+  OfficerHero,
+  OfficerLoading,
+  OfficerFormPanel,
+  OfficerField,
+  OfficerPrimaryButton,
+  OfficerEmpty
+} from '../../components/officer/OfficerPageShell';
 
 const PostUpdates = () => {
   const { user } = useAuth();
@@ -9,6 +18,7 @@ const PostUpdates = () => {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState('');
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -24,17 +34,20 @@ const PostUpdates = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedReport || !message) {
+    if (!selectedReport || !message.trim()) {
       toast.error('Please select a report and enter a message');
       return;
     }
 
+    setSubmitting(true);
     try {
-      await reportsAPI.postUpdate(selectedReport, { message });
+      await reportsAPI.postUpdate(selectedReport, { message: message.trim() });
       toast.success('Update posted');
       setMessage('');
     } catch (error) {
       toast.error('Unable to post update');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -44,52 +57,60 @@ const PostUpdates = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-      </div>
+      <OfficerPage className="max-w-3xl">
+        <OfficerHero
+          eyebrow="Resident communication"
+          title="Post report updates"
+          description="Share clarifications and progress notes with residents."
+        />
+        <OfficerLoading />
+      </OfficerPage>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-gray-900">Post report updates</h1>
-        <p className="text-gray-600 mt-2">Share clarifications for residents and keep them informed.</p>
-      </div>
+    <OfficerPage className="max-w-3xl">
+      <OfficerHero
+        eyebrow="Resident communication"
+        title="Post report updates"
+        description="Share clarifications for residents and keep them informed about how their reports are being handled."
+      />
 
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Select report</label>
-          <select
-            className="input mt-1"
-            value={selectedReport}
-            onChange={(e) => setSelectedReport(e.target.value)}
-          >
-            <option value="">Choose a report</option>
-            {reports.map((report) => (
-              <option key={report._id} value={report._id}>
-                {report.title}
-              </option>
-            ))}
-          </select>
-        </div>
+      {reports.length === 0 ? (
+        <OfficerEmpty message="No department reports available to update." />
+      ) : (
+        <OfficerFormPanel title="New update" onSubmit={handleSubmit}>
+          <OfficerField label="Select report">
+            <select
+              className="input mt-0"
+              value={selectedReport}
+              onChange={(e) => setSelectedReport(e.target.value)}
+            >
+              <option value="">Choose a report</option>
+              {reports.map((report) => (
+                <option key={report._id} value={report._id}>
+                  {report.title}
+                </option>
+              ))}
+            </select>
+          </OfficerField>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Update message</label>
-          <textarea
-            rows="4"
-            className="input mt-1"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Provide an update for residents"
-          />
-        </div>
+          <OfficerField label="Update message">
+            <textarea
+              rows={5}
+              className="input mt-0"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Provide a clear update for residents — include next steps or timelines when possible."
+            />
+          </OfficerField>
 
-        <button type="submit" className="btn btn-primary w-full">
-          Post update
-        </button>
-      </form>
-    </div>
+          <OfficerPrimaryButton type="submit" disabled={submitting} className="!w-full">
+            {submitting ? 'Posting…' : 'Post update'}
+          </OfficerPrimaryButton>
+        </OfficerFormPanel>
+      )}
+    </OfficerPage>
   );
 };
 

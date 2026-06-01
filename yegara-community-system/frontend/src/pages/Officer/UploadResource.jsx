@@ -3,6 +3,17 @@ import { useForm } from 'react-hook-form';
 import { resourcesAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import {
+  OfficerPage,
+  OfficerHero,
+  OfficerLoading,
+  OfficerFormPanel,
+  OfficerField,
+  OfficerPrimaryButton,
+  OfficerOutlineButton,
+  OfficerPanel,
+  OfficerEmpty
+} from '../../components/officer/OfficerPageShell';
 
 const UploadResource = () => {
   const { user } = useAuth();
@@ -60,9 +71,9 @@ const UploadResource = () => {
         ? resource.uploadedBy?._id
         : resource.uploadedBy;
 
-      return String(ownerId || '') === String(user?._id || '');
+      return String(ownerId || '') === String(user?.id || user?._id || '');
     });
-  }, [resources, user?._id]);
+  }, [resources, user?.id, user?._id]);
 
   const handleOpenEdit = (resource) => {
     setEditingResource(resource);
@@ -119,90 +130,85 @@ const UploadResource = () => {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50 to-sky-50 p-6 shadow-sm">
-        <h1 className="text-3xl font-semibold text-gray-900">Upload resource</h1>
-        <p className="text-gray-600 mt-2">Share documents and guides with residents.</p>
-      </div>
+    <OfficerPage className="max-w-3xl">
+      <OfficerHero
+        eyebrow="Knowledge sharing"
+        title="Upload resource"
+        description="Share documents, guides, and forms with residents in your department."
+      />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Title</label>
-          <input className="input mt-1" {...register('title', { required: 'Title is required' })} />
-          {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
-        </div>
+      <OfficerFormPanel onSubmit={handleSubmit(onSubmit)}>
+        <OfficerField label="Title" error={errors.title?.message}>
+          <input className="input mt-0" {...register('title', { required: 'Title is required' })} />
+        </OfficerField>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea className="input mt-1" rows="4" {...register('description')} />
-        </div>
+        <OfficerField label="Description">
+          <textarea className="input mt-0" rows={4} {...register('description')} />
+        </OfficerField>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Category</label>
-          <select className="input mt-1" {...register('category')}>
+        <OfficerField label="Category">
+          <select className="input mt-0" {...register('category')}>
             <option value="Document">Document</option>
             <option value="Guide">Guide</option>
             <option value="Notice">Notice</option>
             <option value="Form">Form</option>
             <option value="Other">Other</option>
           </select>
-        </div>
+        </OfficerField>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">File</label>
-          <div className="mt-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4">
-            <input type="file" className="w-full text-sm text-gray-700" {...register('file', { required: 'File is required' })} />
+        <OfficerField label="File" error={errors.file?.message}>
+          <div className="officer-file-drop">
+            <input
+              type="file"
+              className="w-full text-sm text-slate-700"
+              {...register('file', { required: 'File is required' })}
+            />
           </div>
-          {errors.file && <p className="mt-1 text-sm text-red-600">{errors.file.message}</p>}
-        </div>
+        </OfficerField>
 
-        <button type="submit" className="btn btn-primary w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Uploading...' : 'Upload resource'}
-        </button>
-      </form>
+        <OfficerPrimaryButton type="submit" disabled={isSubmitting} className="!w-full">
+          {isSubmitting ? 'Uploading…' : 'Upload resource'}
+        </OfficerPrimaryButton>
+      </OfficerFormPanel>
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Previously uploaded resources</h2>
-          <button
-            type="button"
-            onClick={fetchResources}
-            className="inline-flex items-center rounded-lg border border-gray-300 text-gray-700 text-sm font-medium px-3 py-1.5 hover:bg-gray-50"
-          >
+      <OfficerPanel
+        title="Your uploaded resources"
+        headExtra={
+          <OfficerOutlineButton type="button" onClick={fetchResources}>
             Refresh
-          </button>
-        </div>
+          </OfficerOutlineButton>
+        }
+      >
 
         {loadingResources ? (
-          <div className="flex justify-center items-center h-24">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
+          <OfficerLoading />
         ) : myResources.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-600">You have not uploaded resources yet.</p>
+          <OfficerEmpty message="You have not uploaded any resources yet." />
         ) : (
-          <div className="mt-4 space-y-3">
+          <div className="space-y-3">
             {myResources.map((resource) => (
-              <div key={resource._id} className="border border-gray-200 rounded-xl p-4 bg-gray-50/40">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div key={resource._id} className="officer-list-item">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{resource.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {resource.category || 'Other'} · {new Date(resource.createdAt).toLocaleDateString()}
+                    <p className="font-semibold text-slate-900">{resource.title}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className="officer-chip">{resource.category || 'Other'}</span>
+                      <span className="officer-chip officer-chip--muted">
+                        {new Date(resource.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                      {resource.description || 'No description provided.'}
                     </p>
-                    <p className="text-sm text-gray-600 mt-2">{resource.description || 'No description provided.'}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(resource)}
-                      className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50"
-                    >
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <OfficerOutlineButton type="button" onClick={() => handleOpenEdit(resource)}>
                       Edit
-                    </button>
+                    </OfficerOutlineButton>
                     <button
                       type="button"
                       onClick={() => handleDelete(resource._id)}
-                      className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
+                      className="officer-btn officer-btn--danger-outline"
                     >
                       Delete
                     </button>
@@ -212,46 +218,36 @@ const UploadResource = () => {
             ))}
           </div>
         )}
-      </div>
+      </OfficerPanel>
 
       {editingResource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-2xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Edit resource</h2>
-              <button
-                type="button"
-                onClick={handleCloseEdit}
-                className="inline-flex items-center rounded-lg border border-gray-200 text-gray-600 text-sm font-medium px-3 py-1.5 hover:bg-gray-50"
-              >
+        <div className="officer-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="officer-modal">
+            <div className="officer-modal__head">
+              <h2 className="text-lg font-semibold text-slate-900">Edit resource</h2>
+              <OfficerOutlineButton type="button" onClick={handleCloseEdit}>
                 Close
-              </button>
+              </OfficerOutlineButton>
             </div>
-
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Title</label>
+            <form onSubmit={handleSaveEdit} className="officer-modal__body space-y-4">
+              <OfficerField label="Title">
                 <input
-                  className="input mt-1"
+                  className="input mt-0"
                   value={editForm.title}
                   onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
+              </OfficerField>
+              <OfficerField label="Description">
                 <textarea
-                  className="input mt-1"
-                  rows="3"
+                  className="input mt-0"
+                  rows={3}
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Category</label>
+              </OfficerField>
+              <OfficerField label="Category">
                 <select
-                  className="input mt-1"
+                  className="input mt-0"
                   value={editForm.category}
                   onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                 >
@@ -261,32 +257,27 @@ const UploadResource = () => {
                   <option value="Form">Form</option>
                   <option value="Other">Other</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Replace file (optional)</label>
-                <div className="mt-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4">
+              </OfficerField>
+              <OfficerField label="Replace file (optional)">
+                <div className="officer-file-drop">
                   <input
                     type="file"
-                    className="w-full text-sm text-gray-700"
+                    className="w-full text-sm text-slate-700"
                     onChange={(e) => setEditForm({ ...editForm, file: e.target.files?.[0] || null })}
                   />
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={handleCloseEdit} className="btn btn-secondary">
+              </OfficerField>
+              <div className="flex flex-wrap justify-end gap-3 pt-2">
+                <OfficerOutlineButton type="button" onClick={handleCloseEdit}>
                   Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save changes
-                </button>
+                </OfficerOutlineButton>
+                <OfficerPrimaryButton type="submit">Save changes</OfficerPrimaryButton>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </OfficerPage>
   );
 };
 
