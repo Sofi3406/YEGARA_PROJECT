@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { usersAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
+import {
+  PortalPage,
+  PortalHero,
+  PortalLoading,
+  PortalEmpty,
+  PortalFormPanel,
+  PortalField,
+  PortalPrimaryButton,
+  PortalPanel
+} from '../../components/portal/PortalPageShell';
 
 const ManageWoredaAdmins = () => {
   const [admins, setAdmins] = useState([]);
@@ -37,7 +47,7 @@ const ManageWoredaAdmins = () => {
         role: 'woreda_admin',
         woreda: form.woreda
       });
-      toast.success('Woreda Admin added successfully');
+      toast.success('Woreda admin added successfully');
       setForm({ fullName: '', email: '', woreda: '' });
       fetchAdmins();
     } catch (error) {
@@ -49,7 +59,7 @@ const ManageWoredaAdmins = () => {
     if (!window.confirm('Delete this woreda admin?')) return;
     try {
       await usersAPI.delete(id);
-      toast.success('Woreda Admin deleted successfully');
+      toast.success('Woreda admin deleted successfully');
       fetchAdmins();
     } catch (error) {
       toast.error('Unable to delete admin');
@@ -61,87 +71,82 @@ const ManageWoredaAdmins = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50 to-sky-50 p-6 shadow-sm">
-        <h1 className="text-3xl font-semibold text-gray-900">Manage woreda admins</h1>
-        <p className="text-gray-600 mt-2">Create or remove woreda admin accounts.</p>
-      </div>
+    <PortalPage>
+      <PortalHero
+        eyebrow="Woreda leadership"
+        title="Manage woreda admins"
+        description="Create or remove woreda administrator accounts across the sub city."
+      />
 
-      <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Full name</label>
-          <input
-            className="input mt-1"
-            value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-          />
+      <PortalFormPanel title="Add woreda admin" onSubmit={handleCreate}>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <PortalField label="Full name">
+            <input
+              className="input mt-0"
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+            />
+          </PortalField>
+          <PortalField label="Email">
+            <input
+              type="email"
+              className="input mt-0"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </PortalField>
+          <PortalField label="Woreda">
+            <input
+              className="input mt-0"
+              value={form.woreda}
+              onChange={(e) => setForm({ ...form, woreda: e.target.value })}
+            />
+          </PortalField>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            type="email"
-            className="input mt-1"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Woreda</label>
-          <input
-            className="input mt-1"
-            value={form.woreda}
-            onChange={(e) => setForm({ ...form, woreda: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-3">
-          <button type="submit" className="btn btn-primary">Add Woreda Admin</button>
-        </div>
-      </form>
+        <PortalPrimaryButton type="submit">Add woreda admin</PortalPrimaryButton>
+      </PortalFormPanel>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-        </div>
-      ) : admins.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-gray-600">
-          No woreda admins found.
-        </div>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50/80">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Woreda</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {admins.map((admin) => (
-                <tr key={admin._id} className="hover:bg-gray-50/70 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-900 font-semibold">{admin.fullName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{admin.email}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-2.5 py-1 text-xs font-medium border border-primary-100">
-                      {admin.woreda}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(admin._id)}
-                      className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </td>
+      <PortalPanel title={`Woreda admins (${admins.length})`}>
+        {loading ? (
+          <PortalLoading />
+        ) : admins.length === 0 ? (
+          <PortalEmpty message="No woreda admins found." />
+        ) : (
+          <div className="officer-table-wrap overflow-x-auto">
+            <table className="officer-table min-w-[640px]">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Woreda</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody>
+                {admins.map((admin) => (
+                  <tr key={admin._id}>
+                    <td>{admin.fullName}</td>
+                    <td>{admin.email}</td>
+                    <td>
+                      <span className="officer-chip">{admin.woreda}</span>
+                    </td>
+                    <td className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(admin._id)}
+                        className="officer-btn officer-btn--danger-outline"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </PortalPanel>
+    </PortalPage>
   );
 };
 

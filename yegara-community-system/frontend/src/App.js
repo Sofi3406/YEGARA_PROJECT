@@ -46,8 +46,6 @@ import SubCityAdminEvents from './pages/SubCityAdmin/ManageEvents';
 import ManageWoredaAdmins from './pages/SubCityAdmin/ManageWoredaAdmins';
 import SubCityAdminReports from './pages/SubCityAdmin/Reports';
 import UserManagement from './pages/SubCityAdmin/UserManagement';
-import SystemSettings from './pages/SubCityAdmin/SystemSettings';
-
 // Shared Pages
 import Events from './pages/Shared/Events';
 import Resources from './pages/Shared/Resources';
@@ -226,7 +224,6 @@ function App() {
                     <Route path="admins" element={<ManageWoredaAdmins />} />
                     <Route path="users" element={<UserManagement />} />
                     <Route path="announcements" element={<OfficerAnnouncements />} />
-                    <Route path="system" element={<SystemSettings />} />
                     <Route path="profile" element={<Profile />} />
                   </Routes>
                 </Layout>

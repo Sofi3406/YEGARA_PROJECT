@@ -9,10 +9,13 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  Legend,
+  ResponsiveContainer,
+  Cell
 } from 'recharts';
 import { format, eachDayOfInterval, subDays } from 'date-fns';
 import { reportsAPI } from '../../services/api';
+import { getPaletteColor, TREND_LINE_COLOR } from '../../utils/chartColors';
 import {
   PortalPage,
   PortalHero,
@@ -23,9 +26,19 @@ import {
   statusToClass
 } from '../../components/portal/PortalPageShell';
 
-const CHART_AMBER = '#d97706';
-const CHART_ORANGE = '#ea580c';
-const CHART_GOLD = '#f59e0b';
+const ColoredDot = ({ cx, cy, index }) => {
+  if (cx == null || cy == null) return null;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={5}
+      fill={getPaletteColor(index)}
+      stroke="#fff"
+      strokeWidth={2}
+    />
+  );
+};
 
 const Analytics = () => {
   const [reports, setReports] = useState([]);
@@ -177,7 +190,12 @@ const Analytics = () => {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="value" fill={CHART_AMBER} radius={[6, 6, 0, 0]} />
+                  <Legend />
+                  <Bar dataKey="value" name="Reports" radius={[6, 6, 0, 0]}>
+                    {statusData.map((entry) => (
+                      <Cell key={entry.name} fill={getLabelColor(entry.name)} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -196,7 +214,12 @@ const Analytics = () => {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="value" fill={CHART_ORANGE} radius={[6, 6, 0, 0]} />
+                  <Legend />
+                  <Bar dataKey="value" name="Reports" radius={[6, 6, 0, 0]}>
+                    {categoryData.map((entry, index) => (
+                      <Cell key={entry.name} fill={getPaletteColor(index)} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -217,7 +240,16 @@ const Analytics = () => {
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} interval={4} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke={CHART_GOLD} strokeWidth={2.5} dot={false} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    name="Daily reports"
+                    stroke={TREND_LINE_COLOR}
+                    strokeWidth={2.5}
+                    dot={<ColoredDot />}
+                    activeDot={{ r: 7, strokeWidth: 2 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

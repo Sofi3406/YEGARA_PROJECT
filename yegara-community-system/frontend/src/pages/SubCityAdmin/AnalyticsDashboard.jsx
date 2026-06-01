@@ -1,23 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  BarChart, LineChart, PieChart,
-  Bar, Line, Pie, Cell,
-  XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
-  AreaChart, Area
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
 } from 'recharts';
 import { analyticsAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
+import { CHART_PALETTE, getPaletteColor } from '../../utils/chartColors';
 import {
-  CalendarIcon,
-  ChartBarIcon,
-  UsersIcon,
-  DocumentTextIcon,
-  ArrowTrendingUpIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
+  PortalPage,
+  PortalHero,
+  PortalLoading,
+  PortalStatGrid,
+  PortalPanel,
+  PortalPrimaryButton,
+  PortalOutlineButton,
+  PortalField,
+  statusToClass
+} from '../../components/portal/PortalPageShell';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const REPORTS_SERIES_COLOR = '#d97706';
+const RESOLVED_SERIES_COLOR = '#16a34a';
 
 const AnalyticsDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -25,16 +38,6 @@ const AnalyticsDashboard = () => {
   const [selectedWoreda, setSelectedWoreda] = useState('all');
   const [loading, setLoading] = useState(true);
   const [realtimeData, setRealtimeData] = useState(null);
-
-  useEffect(() => {
-    fetchAnalytics();
-    fetchRealtimeData();
-    
-    // Refresh real-time data every 30 seconds
-    const interval = setInterval(fetchRealtimeData, 30000);
-    
-    return () => clearInterval(interval);
-  }, [timeFilter, selectedWoreda]);
 
   const fetchAnalytics = async () => {
     setLoading(true);
@@ -56,275 +59,302 @@ const AnalyticsDashboard = () => {
       const response = await analyticsAPI.getRealtime();
       setRealtimeData(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch real-time data');
+      // Keep previous realtime values if refresh fails.
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, trend, color }) => (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-6">
-      <div className="flex items-center">
-        <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
-          <Icon className={`h-6 w-6 ${color}`} />
-        </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-semibold text-gray-900">{value}</p>
-          {trend && (
-            <div className={`flex items-center text-sm ${trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-              <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
-              {trend}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    fetchAnalytics();
+  }, [timeFilter, selectedWoreda]);
 
-  if (loading) {
+  useEffect(() => {
+    fetchRealtimeData();
+    const interval = setInterval(fetchRealtimeData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const woredaOptions = useMemo(() => {
+    const fromPerformance = (analytics?.woredaPerformance || [])
+      .map((item) => item.woreda)
+      .filter(Boolean);
+    return ['all', ...new Set(fromPerformance)];
+  }, [analytics]);
+
+  const summary = analytics?.summary || {};
+
+  if (loading && !analytics) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
+      <PortalPage>
+        <PortalHero
+          eyebrow="Sub city insights"
+          title="Analytics dashboard"
+          description="Monitor reports, users, and performance across all woredas."
+        />
+        <PortalLoading />
+      </PortalPage>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50 to-sky-50 p-6 shadow-sm flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-600">Monitor system performance and community engagement</p>
-        </div>
-        
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={timeFilter}
-            onChange={(e) => setTimeFilter(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="daily">Today</option>
-            <option value="weekly">This Week</option>
-            <option value="monthly">This Month</option>
-            <option value="yearly">This Year</option>
-          </select>
-          
-          <select
-            value={selectedWoreda}
-            onChange={(e) => setSelectedWoreda(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="all">All Woredas</option>
-            <option value="woreda1">Woreda 1</option>
-            <option value="woreda2">Woreda 2</option>
-            <option value="woreda3">Woreda 3</option>
-          </select>
-          
-          <button
-            onClick={fetchAnalytics}
-            className="bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-700"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Reports"
-          value={analytics?.summary?.totalReports || 0}
-          icon={DocumentTextIcon}
-          color="text-blue-600"
-        />
-        <StatCard
-          title="Resolution Rate"
-          value={`${analytics?.summary?.resolutionRate || 0}%`}
-          icon={ChartBarIcon}
-          color="text-green-600"
-        />
-        <StatCard
-          title="Total Users"
-          value={analytics?.summary?.totalUsers || 0}
-          icon={UsersIcon}
-          color="text-purple-600"
-        />
-        <StatCard
-          title="Avg. Resolution"
-          value={`${analytics?.summary?.averageResolutionDays || 0} days`}
-          icon={ClockIcon}
-          color="text-orange-600"
-        />
-      </div>
-
-      {/* Real-time Stats */}
-      {realtimeData && (
-        <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-sky-500 rounded-2xl p-6 text-white shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Real-time Activity</h3>
-            <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm">Live</span>
-            </div>
+    <PortalPage>
+      <PortalHero
+        eyebrow="Sub city insights"
+        title="Analytics dashboard"
+        description="Track community engagement, resolution performance, and woreda-level activity."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <PortalOutlineButton type="button" onClick={fetchAnalytics}>
+              Refresh data
+            </PortalOutlineButton>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        }
+      />
+
+      <div className="officer-form-panel">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <PortalField label="Time period">
+            <select
+              className="input mt-0"
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value)}
+            >
+              <option value="daily">Today</option>
+              <option value="weekly">This week</option>
+              <option value="monthly">This month</option>
+              <option value="yearly">This year</option>
+            </select>
+          </PortalField>
+          <PortalField label="Woreda">
+            <select
+              className="input mt-0"
+              value={selectedWoreda}
+              onChange={(e) => setSelectedWoreda(e.target.value)}
+            >
+              {woredaOptions.map((woreda) => (
+                <option key={woreda} value={woreda}>
+                  {woreda === 'all' ? 'All woredas' : woreda}
+                </option>
+              ))}
+            </select>
+          </PortalField>
+          <div className="flex items-end">
+            <PortalPrimaryButton type="button" onClick={fetchAnalytics} className="w-full sm:w-auto">
+              Apply filters
+            </PortalPrimaryButton>
+          </div>
+        </div>
+      </div>
+
+      <PortalStatGrid
+        stats={[
+          { label: 'Total reports', value: summary.totalReports || 0, percent: 100 },
+          { label: 'Resolution rate', value: `${summary.resolutionRate || 0}%`, percent: summary.resolutionRate || 0 },
+          { label: 'Total users', value: summary.totalUsers || 0, percent: 100 },
+          {
+            label: 'Avg. resolution',
+            value: `${summary.averageResolutionDays || 0} days`,
+            percent: Math.min((summary.averageResolutionDays || 0) * 10, 100)
+          }
+        ]}
+      />
+
+      {realtimeData && (
+        <div className="officer-hero !p-5">
+          <div className="officer-hero__inner !flex-row !items-center !justify-between">
             <div>
-              <p className="text-sm opacity-80">Reports Last Hour</p>
-              <p className="text-2xl font-bold">{realtimeData.reportsLastHour}</p>
+              <p className="officer-hero__eyebrow">Live activity</p>
+              <h2 className="officer-hero__title !mt-2 !text-xl">Real-time overview</h2>
             </div>
-            <div>
-              <p className="text-sm opacity-80">Reports Today</p>
-              <p className="text-2xl font-bold">{realtimeData.reportsToday}</p>
-            </div>
-            <div>
-              <p className="text-sm opacity-80">Active Users Today</p>
-              <p className="text-2xl font-bold">{realtimeData.activeUsersToday}</p>
-            </div>
-            <div>
-              <p className="text-sm opacity-80">Pending Reports</p>
-              <p className="text-2xl font-bold">{realtimeData.pendingReports}</p>
-            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+              Live
+            </span>
+          </div>
+          <div className="relative z-10 mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {[
+              ['Reports last hour', realtimeData.reportsLastHour],
+              ['Reports today', realtimeData.reportsToday],
+              ['Active users today', realtimeData.activeUsersToday],
+              ['Pending reports', realtimeData.pendingReports]
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"
+              >
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-100/80">{label}</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{value ?? 0}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Reports by Category */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-4">Reports by Category</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analytics?.reportsByCategory}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="_id" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {loading ? (
+        <PortalLoading />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="officer-chart-panel">
+              <h2 className="officer-chart-panel__title">Reports by category</h2>
+              {(analytics?.reportsByCategory || []).length === 0 ? (
+                <p className="mt-4 text-sm text-slate-500">No category data yet.</p>
+              ) : (
+                <div className="mt-4 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analytics.reportsByCategory}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
+                      <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" name="Reports" radius={[6, 6, 0, 0]}>
+                        {analytics.reportsByCategory.map((entry, index) => (
+                          <Cell key={entry._id || index} fill={getPaletteColor(index)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
 
-        {/* Resolution Trend */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-4">Resolution Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={analytics?.trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Area type="monotone" dataKey="reports" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} />
-              <Area type="monotone" dataKey="resolved" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+            <div className="officer-chart-panel">
+              <h2 className="officer-chart-panel__title">Resolution trend</h2>
+              {(analytics?.trendData || []).length === 0 ? (
+                <p className="mt-4 text-sm text-slate-500">No trend data yet.</p>
+              ) : (
+                <div className="mt-4 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={analytics.trendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="reports"
+                        name="Total reports"
+                        stroke={REPORTS_SERIES_COLOR}
+                        fill={REPORTS_SERIES_COLOR}
+                        fillOpacity={0.3}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="resolved"
+                        name="Resolved"
+                        stroke={RESOLVED_SERIES_COLOR}
+                        fill={RESOLVED_SERIES_COLOR}
+                        fillOpacity={0.25}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
 
-        {/* Woreda Performance */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-4">Woreda Performance</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analytics?.woredaPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="woreda" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="totalReports" name="Total Reports" fill="#0088FE" />
-              <Bar dataKey="resolutionRate" name="Resolution Rate %" fill="#00C49F" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            <div className="officer-chart-panel">
+              <h2 className="officer-chart-panel__title">Woreda performance</h2>
+              {(analytics?.woredaPerformance || []).length === 0 ? (
+                <p className="mt-4 text-sm text-slate-500">No woreda data yet.</p>
+              ) : (
+                <div className="mt-4 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analytics.woredaPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
+                      <XAxis dataKey="woreda" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="totalReports" name="Total reports" radius={[4, 4, 0, 0]}>
+                        {analytics.woredaPerformance.map((entry, index) => (
+                          <Cell key={`reports-${entry.woreda || index}`} fill={getPaletteColor(index)} />
+                        ))}
+                      </Bar>
+                      <Bar dataKey="resolutionRate" name="Resolution %" radius={[4, 4, 0, 0]}>
+                        {analytics.woredaPerformance.map((entry, index) => (
+                          <Cell
+                            key={`rate-${entry.woreda || index}`}
+                            fill={getPaletteColor(index + 3)}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
 
-        {/* Department Performance */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold mb-4">Department Performance</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={analytics?.departmentPerformance}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ department, percent }) => `${department}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="totalReports"
-              >
-                {analytics?.departmentPerformance?.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+            <div className="officer-chart-panel">
+              <h2 className="officer-chart-panel__title">Department performance</h2>
+              {(analytics?.departmentPerformance || []).length === 0 ? (
+                <p className="mt-4 text-sm text-slate-500">No department data yet.</p>
+              ) : (
+                <div className="mt-4 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={analytics.departmentPerformance}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ department, percent }) =>
+                          `${department}: ${(percent * 100).toFixed(0)}%`
+                        }
+                        outerRadius={90}
+                        dataKey="totalReports"
+                      >
+                        {analytics.departmentPerformance.map((entry, index) => (
+                          <Cell key={entry.department} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* Recent Reports Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/70 rounded-t-2xl">
-          <h3 className="text-lg font-semibold">Recent Reports</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Woreda
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {analytics?.recentReports?.map((report) => (
-                <tr key={report._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {report._id.slice(-6)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {report.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {report.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {report.woreda}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      report.status === 'Resolved' 
-                        ? 'bg-green-100 text-green-800' 
-                        : report.status === 'In Progress'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {report.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(report.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          <PortalPanel title="Recent reports">
+            {(analytics?.recentReports || []).length === 0 ? (
+              <p className="text-sm text-slate-500">No recent reports.</p>
+            ) : (
+              <div className="officer-table-wrap overflow-x-auto">
+                <table className="officer-table min-w-[720px]">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Title</th>
+                      <th>Category</th>
+                      <th>Woreda</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.recentReports.map((report) => (
+                      <tr key={report._id}>
+                        <td className="text-slate-500">{report._id.slice(-6)}</td>
+                        <td>{report.title}</td>
+                        <td>{report.category}</td>
+                        <td>{report.woreda}</td>
+                        <td>
+                          <span className={statusToClass(report.status)}>{report.status}</span>
+                        </td>
+                        <td className="text-slate-500">
+                          {new Date(report.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </PortalPanel>
+        </>
+      )}
+    </PortalPage>
   );
 };
 

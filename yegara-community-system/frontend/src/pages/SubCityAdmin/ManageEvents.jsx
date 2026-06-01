@@ -10,6 +10,16 @@ import {
   getSpotsLeft,
   isEventOwner
 } from '../../utils/eventRegistrations';
+import {
+  PortalPage,
+  PortalHero,
+  PortalLoading,
+  PortalEmpty,
+  PortalFormPanel,
+  PortalField,
+  PortalPrimaryButton,
+  PortalOutlineButton
+} from '../../components/portal/PortalPageShell';
 
 const ManageEvents = () => {
   const { user } = useAuth();
@@ -46,27 +56,20 @@ const ManageEvents = () => {
 
   const buildEventFormData = (eventForm) => {
     const formData = new FormData();
-
     Object.entries(eventForm).forEach(([key, value]) => {
-      if (key === 'images') {
-        return;
-      }
-
+      if (key === 'images') return;
       if (value !== null && value !== undefined && value !== '') {
         formData.append(key, value);
       }
     });
-
     if (eventForm.images?.length > 0) {
       eventForm.images.forEach((file) => formData.append('images', file));
     }
-
     return formData;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!form.title || !form.date || !form.location) {
       toast.error('Please complete all required fields');
       return;
@@ -74,7 +77,6 @@ const ManageEvents = () => {
 
     try {
       const payload = buildEventFormData({ ...form, woreda: 'All Woredas' });
-
       if (editing) {
         await eventsAPI.update(editing, payload);
         toast.success('Event updated successfully');
@@ -82,7 +84,6 @@ const ManageEvents = () => {
         await eventsAPI.create(payload);
         toast.success('City-wide event created successfully');
       }
-
       resetForm();
       fetchEvents();
     } catch (error) {
@@ -107,12 +108,10 @@ const ManageEvents = () => {
     try {
       const eventResponse = await eventsAPI.getOne(eventId);
       const event = eventResponse.data?.data || null;
-
       if (!event) {
         setSelectedEvent(null);
         return;
       }
-
       try {
         const regResponse = await eventsAPI.getRegistrations(eventId);
         const registrations = regResponse.data?.data;
@@ -141,13 +140,10 @@ const ManageEvents = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this event?')) return;
-
     try {
       await eventsAPI.delete(id);
       toast.success('Event deleted successfully');
-      if (selectedEvent?._id === id) {
-        setSelectedEvent(null);
-      }
+      if (selectedEvent?._id === id) setSelectedEvent(null);
       fetchEvents();
     } catch (error) {
       toast.error('Unable to delete event');
@@ -160,13 +156,12 @@ const ManageEvents = () => {
 
   const formatOrganizer = (organizer) => {
     if (!organizer) return 'Admin';
-
-    const roleLabel = organizer.role === 'subcity_admin'
-      ? 'Sub city Admin'
-      : organizer.role === 'woreda_admin'
-        ? 'Woreda Admin'
-        : 'Admin';
-
+    const roleLabel =
+      organizer.role === 'subcity_admin'
+        ? 'Sub city Admin'
+        : organizer.role === 'woreda_admin'
+          ? 'Woreda Admin'
+          : 'Admin';
     return organizer.fullName ? `${roleLabel} / ${organizer.fullName}` : roleLabel;
   };
 
@@ -180,91 +175,93 @@ const ManageEvents = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-gray-900">Manage events</h1>
-        <p className="text-gray-600 mt-2">
-          Create city-wide events and review events created by woreda admins.
-        </p>
-      </div>
+    <PortalPage>
+      <PortalHero
+        eyebrow="Sub city calendar"
+        title="Manage events"
+        description="Create city-wide events and review events published by woreda administrators. Click an event to view registrations."
+      />
 
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Title</label>
-          <input
-            className="input mt-1"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-          />
+      <PortalFormPanel
+        title={editing ? 'Edit event' : 'Create city-wide event'}
+        onSubmit={handleSubmit}
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <PortalField label="Title">
+            <input
+              className="input mt-0"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+          </PortalField>
+          <PortalField label="Date & time">
+            <input
+              type="datetime-local"
+              className="input mt-0"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
+          </PortalField>
+          <PortalField label="Location">
+            <input
+              className="input mt-0"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+            />
+          </PortalField>
+          <PortalField label="Meeting link (optional)">
+            <input
+              className="input mt-0"
+              value={form.meetingLink}
+              onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
+            />
+          </PortalField>
+          <div className="md:col-span-2">
+            <PortalField label="Event images">
+              <div className="officer-file-drop">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="w-full text-sm text-slate-700"
+                  onChange={(e) => setForm({ ...form, images: Array.from(e.target.files || []) })}
+                />
+              </div>
+              <p className="mt-1 text-xs text-amber-800">Attach up to 5 images.</p>
+              {form.images?.length > 0 && (
+                <p className="mt-1 text-xs font-medium text-amber-800">
+                  {form.images.length} image{form.images.length === 1 ? '' : 's'} selected
+                </p>
+              )}
+            </PortalField>
+          </div>
+          <div className="md:col-span-2">
+            <PortalField label="Description">
+              <textarea
+                rows={3}
+                className="input mt-0"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </PortalField>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Date & time</label>
-          <input
-            type="datetime-local"
-            className="input mt-1"
-            value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Location</label>
-          <input
-            className="input mt-1"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Meeting link (optional)</label>
-          <input
-            className="input mt-1"
-            value={form.meetingLink}
-            onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Event images</label>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="input mt-1"
-            onChange={(e) => setForm({ ...form, images: Array.from(e.target.files || []) })}
-          />
-          <p className="mt-1 text-xs text-gray-500">Attach up to 5 images.</p>
-          {form.images?.length > 0 && (
-            <p className="mt-1 text-xs text-primary-700">{form.images.length} image{form.images.length > 1 ? 's' : ''} selected</p>
-          )}
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            rows="3"
-            className="input mt-1"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-2 flex gap-3">
-          <button type="submit" className="btn btn-primary">
+        <div className="flex flex-wrap gap-3">
+          <PortalPrimaryButton type="submit">
             {editing ? 'Update event' : 'Create city-wide event'}
-          </button>
+          </PortalPrimaryButton>
           {editing && (
-            <button type="button" className="btn btn-secondary" onClick={resetForm}>
+            <PortalOutlineButton type="button" onClick={resetForm}>
               Cancel
-            </button>
+            </PortalOutlineButton>
           )}
         </div>
-      </form>
+      </PortalFormPanel>
 
       {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-        </div>
+        <PortalLoading />
       ) : events.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm text-gray-600">
-          No events created yet.
-        </div>
+        <PortalEmpty message="No events created yet." />
       ) : (
         <>
           {selectedEvent && (
@@ -275,11 +272,15 @@ const ManageEvents = () => {
             />
           )}
 
-          <div className="space-y-4">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-800">
+            {events.length} event{events.length === 1 ? '' : 's'}
+          </p>
+
+          <div className="space-y-5">
             {events.map((event) => (
-              <div
+              <article
                 key={event._id}
-                className={`bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${selectedEvent?._id === event._id ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200'}`}
+                className={`officer-report-card ${selectedEvent?._id === event._id ? '!border-amber-400 ring-2 ring-amber-100' : ''}`}
               >
                 <div
                   role="button"
@@ -293,66 +294,57 @@ const ManageEvents = () => {
                   }}
                   className="cursor-pointer"
                 >
-                <div className="flex flex-col md:flex-row md:justify-between gap-4">
-                  <div className="flex items-start gap-4 min-w-0">
-                    <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">
-                      <span className="text-[10px] tracking-wide">{formatEventTime(event.date).month}</span>
-                      <span className="text-base font-semibold leading-none">{formatEventTime(event.date).day}</span>
+                  <div className="flex flex-col gap-4 md:flex-row md:justify-between">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <div className="officer-event-date">
+                        <span className="officer-event-date__month">{formatEventTime(event.date).month}</span>
+                        <span className="officer-event-date__day">{formatEventTime(event.date).day}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold text-slate-900">{event.title}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                          {event.description || 'No description available.'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">{event.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{event.description || 'No description available.'}</p>
+                    <div className="shrink-0 space-y-2 text-sm text-slate-600 md:text-right">
+                      <p>{formatEventTime(event.date).full}</p>
+                      <p className="font-semibold text-slate-800">{event.location}</p>
+                      <div className="flex flex-wrap gap-2 md:justify-end">
+                        <span className="officer-chip">{getRegistrationStatus(event).label}</span>
+                        {getSpotsLeft(event) !== null && (
+                          <span className="officer-chip officer-chip--muted">
+                            {getSpotsLeft(event)} spot{getSpotsLeft(event) === 1 ? '' : 's'} left
+                          </span>
+                        )}
+                        <span className="officer-chip officer-chip--muted">
+                          {event.woreda || 'All Woredas'}
+                        </span>
+                        <span className="officer-chip officer-chip--muted">
+                          {formatOrganizer(event.organizer)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="text-sm text-gray-600 md:text-right">
-                    <p>{formatEventTime(event.date).full}</p>
-                    <p className="mt-1 text-gray-700 font-medium">{event.location}</p>
-                    <span className={`inline-flex items-center mt-2 rounded-full px-3 py-1 text-xs font-medium border ${getRegistrationStatus(event).className}`}>
-                      {getRegistrationStatus(event).label}
-                    </span>
-                    {getSpotsLeft(event) !== null && (
-                      <span className="inline-flex items-center mt-2 rounded-full bg-white px-3 py-1 text-xs font-medium border border-slate-200 text-slate-600">
-                        {getSpotsLeft(event)} spot{getSpotsLeft(event) === 1 ? '' : 's'} left
-                      </span>
-                    )}
-                    <div className="mt-2 flex flex-wrap md:justify-end gap-2">
-                      <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100">
-                        Scope: {event.woreda || 'All Woredas'}
-                      </span>
-                      <span className="inline-flex items-center rounded-full bg-gray-50 text-gray-700 px-3 py-1 text-xs font-medium border border-gray-200">
-                        {formatOrganizer(event.organizer)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
                 </div>
 
                 {(isEventOwner(event, user) || canViewEventRegistrations(event, user)) && (
-                  <div className="relative z-10 mt-4 flex flex-wrap gap-3">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     {isEventOwner(event, user) && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50"
-                        onClick={() => handleEdit(event)}
-                      >
+                      <PortalOutlineButton type="button" onClick={() => handleEdit(event)}>
                         Edit
-                      </button>
+                      </PortalOutlineButton>
                     )}
                     {canViewEventRegistrations(event, user) && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center rounded-lg border border-amber-200 text-amber-700 text-sm font-medium px-3 py-1.5 hover:bg-amber-50"
-                        onClick={() => handleViewRegistrations(event._id)}
-                      >
+                      <PortalOutlineButton type="button" onClick={() => handleViewRegistrations(event._id)}>
                         View registrations
-                      </button>
+                      </PortalOutlineButton>
                     )}
                     {isEventOwner(event, user) && (
                       <button
                         type="button"
-                        className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
                         onClick={() => handleDelete(event._id)}
+                        className="officer-btn officer-btn--danger-outline"
                       >
                         Delete
                       </button>
@@ -361,31 +353,31 @@ const ManageEvents = () => {
                 )}
 
                 {event.images?.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {event.images.slice(0, 3).map((image, index) => (
                       <a
                         key={`${event._id}-image-${index}`}
                         href={getMediaUrl(image)}
                         target="_blank"
                         rel="noreferrer"
-                        className="block overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                        className="block overflow-hidden rounded-xl border border-amber-100 bg-amber-50/50"
                       >
                         <img
                           src={getMediaUrl(image)}
-                          alt={`Event image ${index + 1} for ${event.title}`}
-                          className="h-28 w-full object-cover transition-transform duration-200 hover:scale-105"
+                          alt={`Event ${index + 1}`}
+                          className="h-28 w-full object-cover transition-transform duration-300 hover:scale-105"
                           loading="lazy"
                         />
                       </a>
                     ))}
                   </div>
                 )}
-              </div>
+              </article>
             ))}
           </div>
         </>
       )}
-    </div>
+    </PortalPage>
   );
 };
 
