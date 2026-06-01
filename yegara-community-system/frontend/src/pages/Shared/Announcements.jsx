@@ -45,11 +45,11 @@ const Announcements = () => {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-8 text-white shadow-xl md:px-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.24),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(251,191,36,0.20),transparent_30%)]" />
+      <div className="relative overflow-hidden rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-950 via-amber-900 to-orange-800 px-6 py-8 text-white shadow-xl md:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.26),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.20),transparent_30%)]" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">
+              <p className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-amber-100">
               Community feed
             </p>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">Public updates</h1>
@@ -64,8 +64,8 @@ const Announcements = () => {
               <p className="mt-1 text-2xl font-semibold">{announcementCount}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-300">Access</p>
-              <p className="mt-1 text-sm font-medium text-amber-200">Public announcements</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-amber-100/80">Access</p>
+              <p className="mt-1 text-sm font-medium text-amber-100">Public announcements</p>
             </div>
           </div>
         </div>
@@ -86,7 +86,7 @@ const Announcements = () => {
                 key={item._id}
                 className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
               >
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-primary-500 to-amber-300" />
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-300" />
                 <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/2 translate-x-1/2 rounded-full bg-amber-100/50 blur-3xl transition-opacity group-hover:opacity-80" />
 
                 {item.image && (
@@ -106,8 +106,8 @@ const Announcements = () => {
                 <div className="p-5 md:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-4 min-w-0">
-                      <div className="shrink-0 rounded-2xl bg-slate-950 px-3 py-2 text-white shadow-md shadow-slate-950/20">
-                        <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200">{time.month}</span>
+                      <div className="shrink-0 rounded-2xl bg-amber-950 px-3 py-2 text-white shadow-md shadow-amber-950/20">
+                        <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-100">{time.month}</span>
                         <span className="block text-2xl font-semibold leading-none">{time.day}</span>
                       </div>
                       <div className="min-w-0">
@@ -117,7 +117,7 @@ const Announcements = () => {
                       </div>
                     </div>
 
-                    <span className="inline-flex items-center rounded-full border border-cyan-100 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+                    <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                       {item.category || 'General'}
                     </span>
                   </div>
