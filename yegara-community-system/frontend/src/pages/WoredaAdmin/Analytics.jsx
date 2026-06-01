@@ -13,13 +13,19 @@ import {
 } from 'recharts';
 import { format, eachDayOfInterval, subDays } from 'date-fns';
 import { reportsAPI } from '../../services/api';
+import {
+  PortalPage,
+  PortalHero,
+  PortalLoading,
+  PortalStatGrid,
+  PortalPanel,
+  PortalEmpty,
+  statusToClass
+} from '../../components/portal/PortalPageShell';
 
-const statusStyles = {
-  Pending: 'bg-yellow-100 text-yellow-800',
-  'In Progress': 'bg-blue-100 text-blue-800',
-  Resolved: 'bg-green-100 text-green-800',
-  Rejected: 'bg-red-100 text-red-800'
-};
+const CHART_AMBER = '#d97706';
+const CHART_ORANGE = '#ea580c';
+const CHART_GOLD = '#f59e0b';
 
 const Analytics = () => {
   const [reports, setReports] = useState([]);
@@ -42,18 +48,11 @@ const Analytics = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const pending = reports.filter((report) => report.status === 'Pending').length;
-    const inProgress = reports.filter((report) => report.status === 'In Progress').length;
-    const resolved = reports.filter((report) => report.status === 'Resolved').length;
-    const rejected = reports.filter((report) => report.status === 'Rejected').length;
-
-    return {
-      total: reports.length,
-      pending,
-      inProgress,
-      resolved,
-      rejected
-    };
+    const pending = reports.filter((r) => r.status === 'Pending').length;
+    const inProgress = reports.filter((r) => r.status === 'In Progress').length;
+    const resolved = reports.filter((r) => r.status === 'Resolved').length;
+    const rejected = reports.filter((r) => r.status === 'Rejected').length;
+    return { total: reports.length, pending, inProgress, resolved, rejected };
   }, [reports]);
 
   const categoryBreakdown = useMemo(() => {
@@ -64,18 +63,20 @@ const Analytics = () => {
     }, {});
   }, [reports]);
 
-  const statusData = useMemo(() => (
-    [
+  const statusData = useMemo(
+    () => [
       { name: 'Pending', value: stats.pending },
       { name: 'In Progress', value: stats.inProgress },
       { name: 'Resolved', value: stats.resolved },
       { name: 'Rejected', value: stats.rejected }
-    ]
-  ), [stats]);
+    ],
+    [stats]
+  );
 
-  const categoryData = useMemo(() => (
-    Object.entries(categoryBreakdown).map(([name, value]) => ({ name, value }))
-  ), [categoryBreakdown]);
+  const categoryData = useMemo(
+    () => Object.entries(categoryBreakdown).map(([name, value]) => ({ name, value })),
+    [categoryBreakdown]
+  );
 
   const trendData = useMemo(() => {
     const end = new Date();
@@ -83,9 +84,7 @@ const Analytics = () => {
     const days = eachDayOfInterval({ start, end });
     const counts = new Map();
 
-    days.forEach((day) => {
-      counts.set(format(day, 'MMM dd'), 0);
-    });
+    days.forEach((day) => counts.set(format(day, 'MMM dd'), 0));
 
     reports.forEach((report) => {
       const created = report.createdAt ? new Date(report.createdAt) : null;
@@ -98,133 +97,106 @@ const Analytics = () => {
   }, [reports]);
 
   const resolutionStats = useMemo(() => {
-    const resolvedReports = reports.filter((report) => report.status === 'Resolved');
+    const resolvedReports = reports.filter((r) => r.status === 'Resolved');
     const totalResolvedDays = resolvedReports.reduce((sum, report) => {
       if (!report.resolvedAt || !report.createdAt) return sum;
       const resolvedAt = new Date(report.resolvedAt).getTime();
       const createdAt = new Date(report.createdAt).getTime();
       if (Number.isNaN(resolvedAt) || Number.isNaN(createdAt)) return sum;
-      const diffDays = Math.max((resolvedAt - createdAt) / (1000 * 60 * 60 * 24), 0);
-      return sum + diffDays;
+      return sum + Math.max((resolvedAt - createdAt) / (1000 * 60 * 60 * 24), 0);
     }, 0);
 
-    const avgResolutionDays = resolvedReports.length
-      ? totalResolvedDays / resolvedReports.length
-      : 0;
-
-    const resolutionRate = reports.length
-      ? (resolvedReports.length / reports.length) * 100
-      : 0;
-
     return {
-      resolutionRate,
-      avgResolutionDays
+      resolutionRate: reports.length ? (resolvedReports.length / reports.length) * 100 : 0,
+      avgResolutionDays: resolvedReports.length ? totalResolvedDays / resolvedReports.length : 0
     };
   }, [reports]);
 
   const recentReports = useMemo(() => reports.slice(0, 8), [reports]);
+  const total = Math.max(stats.total, 1);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-      </div>
+      <PortalPage>
+        <PortalHero
+          eyebrow="Insights"
+          title="Analytics"
+          description="Detailed report analytics for your woreda."
+        />
+        <PortalLoading />
+      </PortalPage>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50 to-sky-50 p-6 shadow-sm">
-        <h1 className="text-3xl font-semibold text-gray-900">Analytics</h1>
-        <p className="text-gray-600 mt-2">Detailed report analytics for your woreda.</p>
-      </div>
+    <PortalPage>
+      <PortalHero
+        eyebrow="Insights"
+        title="Analytics"
+        description="Track report volume, resolution performance, and category trends across your woreda."
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">Total reports</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</p>
-          <div className="mt-3 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-            <div className="h-full bg-primary-600" style={{ width: '100%' }}></div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">Pending</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.pending}</p>
-          <div className="mt-3 h-1.5 rounded-full bg-yellow-100 overflow-hidden">
-            <div className="h-full bg-yellow-500" style={{ width: stats.total ? `${(stats.pending / stats.total) * 100}%` : '0%' }}></div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">In progress</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.inProgress}</p>
-          <div className="mt-3 h-1.5 rounded-full bg-blue-100 overflow-hidden">
-            <div className="h-full bg-blue-500" style={{ width: stats.total ? `${(stats.inProgress / stats.total) * 100}%` : '0%' }}></div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">Resolved</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.resolved}</p>
-          <div className="mt-3 h-1.5 rounded-full bg-green-100 overflow-hidden">
-            <div className="h-full bg-green-500" style={{ width: stats.total ? `${(stats.resolved / stats.total) * 100}%` : '0%' }}></div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">Rejected</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.rejected}</p>
-          <div className="mt-3 h-1.5 rounded-full bg-red-100 overflow-hidden">
-            <div className="h-full bg-red-500" style={{ width: stats.total ? `${(stats.rejected / stats.total) * 100}%` : '0%' }}></div>
-          </div>
-        </div>
-      </div>
+      <PortalStatGrid
+        columns={4}
+        stats={[
+          { label: 'Total reports', value: stats.total, percent: 100 },
+          { label: 'Pending', value: stats.pending, percent: (stats.pending / total) * 100 },
+          { label: 'In progress', value: stats.inProgress, percent: (stats.inProgress / total) * 100 },
+          { label: 'Resolved', value: stats.resolved, percent: (stats.resolved / total) * 100 }
+        ]}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">Resolution rate</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">
-            {resolutionStats.resolutionRate.toFixed(1)}%
-          </p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm text-gray-500">Avg resolution days</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">
-            {resolutionStats.avgResolutionDays.toFixed(1)}
-          </p>
-        </div>
-      </div>
+      <PortalStatGrid
+        columns={4}
+        stats={[
+          { label: 'Rejected', value: stats.rejected, percent: (stats.rejected / total) * 100 },
+          {
+            label: 'Resolution rate',
+            value: `${resolutionStats.resolutionRate.toFixed(1)}%`,
+            percent: resolutionStats.resolutionRate
+          },
+          {
+            label: 'Avg resolution days',
+            value: resolutionStats.avgResolutionDays.toFixed(1),
+            percent: Math.min(resolutionStats.avgResolutionDays * 10, 100)
+          },
+          { label: 'Categories', value: categoryData.length, percent: 100 }
+        ]}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Reports by status</h2>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="officer-chart-panel">
+          <h2 className="officer-chart-panel__title">Reports by status</h2>
           {statusData.every((item) => item.value === 0) ? (
-            <p className="mt-4 text-sm text-gray-500">No status data yet.</p>
+            <p className="mt-4 text-sm text-slate-500">No status data yet.</p>
           ) : (
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={statusData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="value" fill={CHART_AMBER} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Reports by category</h2>
+        <div className="officer-chart-panel">
+          <h2 className="officer-chart-panel__title">Reports by category</h2>
           {categoryData.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-500">No category data yet.</p>
+            <p className="mt-4 text-sm text-slate-500">No category data yet.</p>
           ) : (
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="value" fill={CHART_ORANGE} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -232,50 +204,49 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Reports over time (last 30 days)</h2>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="officer-chart-panel lg:col-span-2">
+          <h2 className="officer-chart-panel__title">Reports over time (last 30 days)</h2>
           {trendData.every((item) => item.value === 0) ? (
-            <p className="mt-4 text-sm text-gray-500">No recent reports.</p>
+            <p className="mt-4 text-sm text-slate-500">No recent reports.</p>
           ) : (
             <div className="mt-4 h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#fde68a" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} interval={4} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#16a34a" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="value" stroke={CHART_GOLD} strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Recent reports</h2>
+        <PortalPanel title="Recent reports">
           {recentReports.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-500">No reports submitted yet.</p>
+            <PortalEmpty message="No reports submitted yet." />
           ) : (
-            <div className="mt-4 divide-y divide-gray-200">
+            <ul className="space-y-3">
               {recentReports.map((report) => (
-                <div key={report._id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{report.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(report.createdAt).toLocaleDateString()}
-                    </p>
+                <li key={report._id} className="officer-list-item">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{report.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {new Date(report.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className={statusToClass(report.status)}>{report.status}</span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${statusStyles[report.status] || 'bg-gray-100 text-gray-700'}`}>
-                    {report.status}
-                  </span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </PortalPanel>
       </div>
-    </div>
+    </PortalPage>
   );
 };
 

@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { usersAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import {
+  PortalPage,
+  PortalHero,
+  PortalLoading,
+  PortalEmpty,
+  PortalFormPanel,
+  PortalField,
+  PortalPrimaryButton,
+  PortalPanel
+} from '../../components/portal/PortalPageShell';
 
 const ManageOfficers = () => {
   const { user } = useAuth();
@@ -47,7 +57,7 @@ const ManageOfficers = () => {
         customDepartment: form.department === 'Other' ? form.customDepartment.trim() : undefined,
         woreda: user?.woreda
       });
-      toast.success('Department Officer added successfully');
+      toast.success('Department officer added successfully');
       setForm({ fullName: '', email: '', department: '', customDepartment: '' });
       fetchOfficers();
     } catch (error) {
@@ -59,7 +69,7 @@ const ManageOfficers = () => {
     if (!window.confirm('Delete this officer?')) return;
     try {
       await usersAPI.delete(id);
-      toast.success('Department Officer deleted successfully');
+      toast.success('Department officer deleted successfully');
       fetchOfficers();
     } catch (error) {
       toast.error('Unable to delete officer');
@@ -71,108 +81,102 @@ const ManageOfficers = () => {
   }, [user?.woreda]);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50 to-sky-50 p-6 shadow-sm">
-        <h1 className="text-3xl font-semibold text-gray-900">Manage department officers</h1>
-        <p className="text-gray-600 mt-2">Add or remove officers in your woreda.</p>
-      </div>
+    <PortalPage>
+      <PortalHero
+        eyebrow="Team management"
+        title="Manage department officers"
+        description="Add or remove department officers who handle reports in your woreda."
+      />
 
-      <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Full name</label>
-          <input
-            className="input mt-1"
-            value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            type="email"
-            className="input mt-1"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Department</label>
-          <select
-            className="input mt-1"
-            value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value, customDepartment: '' })}
-          >
-            <option value="">Select department</option>
-            <option value="Water">Water</option>
-            <option value="Road">Road</option>
-            <option value="Sanitation">Sanitation</option>
-            <option value="Electricity">Electricity</option>
-            <option value="Health">Health</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        {form.department === 'Other' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Custom category</label>
+      <PortalFormPanel title="Add new officer" onSubmit={handleCreate}>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <PortalField label="Full name">
             <input
-              className="input mt-1"
-              placeholder="Use the resident's category"
-              value={form.customDepartment}
-              onChange={(e) => setForm({ ...form, customDepartment: e.target.value })}
+              className="input mt-0"
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
             />
+          </PortalField>
+          <PortalField label="Email">
+            <input
+              type="email"
+              className="input mt-0"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </PortalField>
+          <PortalField label="Department">
+            <select
+              className="input mt-0"
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value, customDepartment: '' })}
+            >
+              <option value="">Select department</option>
+              <option value="Water">Water</option>
+              <option value="Road">Road</option>
+              <option value="Sanitation">Sanitation</option>
+              <option value="Electricity">Electricity</option>
+              <option value="Health">Health</option>
+              <option value="Other">Other</option>
+            </select>
+          </PortalField>
+          {form.department === 'Other' && (
+            <PortalField label="Custom category">
+              <input
+                className="input mt-0"
+                placeholder="Enter department name"
+                value={form.customDepartment}
+                onChange={(e) => setForm({ ...form, customDepartment: e.target.value })}
+              />
+            </PortalField>
+          )}
+        </div>
+        <PortalPrimaryButton type="submit">Add officer</PortalPrimaryButton>
+      </PortalFormPanel>
+
+      <PortalPanel title={`Officers (${officers.length})`}>
+        {loading ? (
+          <PortalLoading />
+        ) : officers.length === 0 ? (
+          <PortalEmpty message="No officers found for this woreda." />
+        ) : (
+          <div className="officer-table-wrap overflow-x-auto">
+            <table className="officer-table min-w-[640px]">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Department</th>
+                  <th>Custom category</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {officers.map((officer) => (
+                  <tr key={officer._id}>
+                    <td>{officer.fullName}</td>
+                    <td>{officer.email}</td>
+                    <td>
+                      <span className="officer-chip">{officer.department || 'General'}</span>
+                    </td>
+                    <td>{officer.customDepartment || '—'}</td>
+                    <td className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(officer._id)}
+                        className="officer-btn officer-btn--danger-outline"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-        <div className="md:col-span-3">
-          <button type="submit" className="btn btn-primary">Add officer</button>
-        </div>
-      </form>
-
-      {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-        </div>
-      ) : officers.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-gray-600">
-          No officers found for this woreda.
-        </div>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50/80">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Custom category</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {officers.map((officer) => (
-                <tr key={officer._id} className="hover:bg-gray-50/70 transition-colors">
-                  <td className="px-4 py-3 text-sm text-gray-900 font-semibold">{officer.fullName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{officer.email}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-2.5 py-1 text-xs font-medium border border-primary-100">
-                      {officer.department || 'General'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{officer.customDepartment || '-'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(officer._id)}
-                      className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+      </PortalPanel>
+    </PortalPage>
   );
 };
 
