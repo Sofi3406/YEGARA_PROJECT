@@ -96,160 +96,173 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50 to-sky-50 p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Welcome back{user?.fullName ? `, ${user.fullName}` : ''}</h1>
-          <p className="text-gray-600 mt-2">Track your reports and stay updated with your community.</p>
+      <div className="relative overflow-hidden rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-950 via-amber-900 to-orange-800 px-6 py-8 text-white shadow-xl md:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.24),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.18),transparent_30%)]" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-amber-100">
+              Resident dashboard
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">
+              Welcome back{user?.fullName ? `, ${user.fullName}` : ''}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-amber-50/85 md:text-base">
+              Track your reports, see updates, and move through community services from a more polished dashboard.
+            </p>
+          </div>
+
+          <Link
+            to="/resident/reports/new"
+            className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-amber-950 shadow-lg shadow-amber-950/20 transition-transform hover:-translate-y-0.5 hover:bg-amber-50"
+          >
+            Report an issue
+          </Link>
         </div>
-        <Link
-          to="/resident/reports/new"
-          className="bg-primary-600 text-white px-5 py-3 rounded-lg font-medium hover:bg-primary-700 text-center"
-        >
-          Report an issue
-        </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-            <p className="text-sm text-gray-500">{stat.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900">
-              {loading ? '...' : stat.value}
-            </p>
-            <div className="mt-3 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full bg-primary-600" style={{ width: loading ? '0%' : '100%' }}></div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat, index) => (
+          <div key={stat.label} className="group rounded-2xl border border-amber-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-50">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                <p className="mt-2 text-3xl font-semibold text-slate-900">
+                  {loading ? '...' : stat.value}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                0{index + 1}
+              </div>
+            </div>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400" style={{ width: loading ? '0%' : '100%' }} />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Public updates</h2>
-            <p className="text-sm text-gray-500 mt-1">Officer updates for reports in your woreda.</p>
-          </div>
-          <Link to="/resident/public-updates" className="text-sm text-primary-600 hover:text-primary-700">
-            View all
-          </Link>
-        </div>
-        {loading ? (
-          <div className="flex justify-center items-center h-24">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-        ) : publicUpdates.length === 0 ? (
-          <div className="mt-4 text-gray-500 text-sm">No public updates available right now.</div>
-        ) : (
-          <div className="mt-4 space-y-4">
-            {publicUpdates.map((item) => (
-              <div key={item._id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{item.reportTitle}</h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {item.reportCategory} • {item.reportDepartment || 'General'} • {item.woreda}
-                    </p>
-                  </div>
-                  <span className="text-xs rounded-full bg-primary-50 text-primary-700 border border-primary-100 px-2 py-1">
-                    {item.reportStatus}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-gray-700 line-clamp-3">{item.latestUpdate?.message}</p>
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-                  <span>
-                    {item.latestUpdate?.timestamp ? new Date(item.latestUpdate.timestamp).toLocaleString() : 'Update'}
-                  </span>
-                  <Link to={`/resident/reports/${item.reportId}`} className="text-primary-600 hover:text-primary-700 font-medium">
-                    Open report
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Recent reports</h2>
-            <Link to="/resident/reports" className="text-sm text-primary-600 hover:text-primary-700">
-            <h2 className="text-lg font-semibold text-gray-900">Official announcements</h2>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Community pulse</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Public updates</h2>
+              <p className="mt-1 text-sm text-slate-500">Officer updates for reports in your woreda.</p>
+            </div>
+            <Link to="/resident/public-updates" className="text-sm font-medium text-amber-700 hover:text-amber-800">
+              View all
             </Link>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-24">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <div className="flex h-28 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
             </div>
-          ) : recentReports.length === 0 ? (
-            <div className="mt-4 text-gray-500 text-sm">
-              You have no recent reports to show. Create a new report to get started.
+          ) : publicUpdates.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              No public updates available right now.
             </div>
           ) : (
-            <div className="mt-4 divide-y divide-gray-200">
-              {recentReports.map((report) => (
-                <div key={report._id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div>
-                    <Link
-                      to={`/resident/reports/${report._id}`}
-                      className="text-sm font-semibold text-gray-900 hover:text-primary-600"
-                    >
-                      {report.title}
-                    </Link>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(report.createdAt).toLocaleDateString()}
-                    </p>
+            <div className="mt-5 space-y-4">
+              {publicUpdates.map((item) => (
+                <div key={item._id} className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-amber-50/50 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-slate-900">{item.reportTitle}</h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.reportCategory} • {item.reportDepartment || 'General'} • {item.woreda}
+                      </p>
+                    </div>
+                    <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                      {item.reportStatus}
+                    </span>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full w-fit ${statusStyles[report.status] || 'bg-gray-100 text-gray-700'}`}
-                  >
-                    {report.status}
-                  </span>
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{item.latestUpdate?.message}</p>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <span>
+                      {item.latestUpdate?.timestamp ? new Date(item.latestUpdate.timestamp).toLocaleString() : 'Update'}
+                    </span>
+                    <Link to={`/resident/reports/${item.reportId}`} className="font-medium text-amber-700 hover:text-amber-800">
+                      Open report
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Quick actions</h2>
-          <div className="mt-4 space-y-3">
-            <Link
-              to="/events"
-              className="block w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200"
-            >
-              Browse events
-            </Link>
-            <Link
-              to="/resident/resources"
-              className="block w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200"
-            >
-              Download resources
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Latest announcements</h2>
-            <Link to="/resident/announcements" className="text-sm text-primary-600 hover:text-primary-700">
+        <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Your activity</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Recent reports</h2>
+            </div>
+            <Link to="/resident/reports" className="text-sm font-medium text-amber-700 hover:text-amber-800">
               View all
             </Link>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-24">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <div className="flex h-28 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+            </div>
+          ) : recentReports.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              You have no recent reports to show. Create a new report to get started.
+            </div>
+          ) : (
+            <div className="mt-5 space-y-4">
+              {recentReports.map((report) => (
+                <div key={report._id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition-colors hover:bg-amber-50/60">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <Link
+                        to={`/resident/reports/${report._id}`}
+                        className="truncate text-sm font-semibold text-slate-900 hover:text-amber-700"
+                      >
+                        {report.title}
+                      </Link>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {new Date(report.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[report.status] || 'bg-slate-100 text-slate-700'}`}
+                    >
+                      {report.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Community noticeboard</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Latest announcements</h2>
+            </div>
+            <Link to="/resident/announcements" className="text-sm font-medium text-amber-700 hover:text-amber-800">
+              View all
+            </Link>
+          </div>
+          {loading ? (
+            <div className="flex h-28 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
             </div>
           ) : announcements.length === 0 ? (
-            <div className="mt-4 text-gray-500 text-sm">No announcements available right now.</div>
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              No announcements available right now.
+            </div>
           ) : (
-            <div className="mt-4 space-y-4">
+            <div className="mt-5 space-y-4">
               {announcements.map((item) => (
-                <div key={item._id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                <div key={item._id} className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-amber-50/60 p-4 shadow-sm">
                   {item.image && (
-                    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 aspect-[4/3] max-h-28">
+                    <div className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 aspect-[4/3] max-h-32">
                       <img
                         src={getMediaUrl(item.image)}
                         alt={item.title}
@@ -260,42 +273,47 @@ const Dashboard = () => {
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-semibold text-gray-900 truncate">{item.title}</h3>
-                    <span className="text-xs rounded-full bg-primary-50 text-primary-700 border border-primary-100 px-2 py-1">
+                    <h3 className="truncate font-semibold text-slate-900">{item.title}</h3>
+                    <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
                       {item.category || 'General'}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-gray-600 line-clamp-3">{item.message}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{item.message}</p>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Recent resources</h2>
-            <Link to="/resident/resources" className="text-sm text-primary-600 hover:text-primary-700">
+        <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Library</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Recent resources</h2>
+            </div>
+            <Link to="/resident/resources" className="text-sm font-medium text-amber-700 hover:text-amber-800">
               Open library
             </Link>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-24">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <div className="flex h-28 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
             </div>
           ) : resources.length === 0 ? (
-            <div className="mt-4 text-gray-500 text-sm">No resources available right now.</div>
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+              No resources available right now.
+            </div>
           ) : (
-            <div className="mt-4 space-y-4">
+            <div className="mt-5 space-y-4">
               {resources.map((resource) => (
-                <div key={resource._id} className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                <div key={resource._id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition-colors hover:bg-amber-50/60">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-semibold text-gray-900 truncate">{resource.title}</h3>
-                    <span className="text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200 px-2 py-1">
+                    <h3 className="truncate font-semibold text-slate-900">{resource.title}</h3>
+                    <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
                       {resource.category || 'Other'}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-gray-600 line-clamp-3">{resource.description || 'No description provided.'}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{resource.description || 'No description provided.'}</p>
                 </div>
               ))}
             </div>
