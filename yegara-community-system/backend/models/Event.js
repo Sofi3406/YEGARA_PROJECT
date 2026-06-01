@@ -50,6 +50,10 @@ const eventSchema = new mongoose.Schema({
     }
   }],
   maxAttendees: Number,
+  attendeeCount: {
+    type: Number,
+    default: 0
+  },
   status: {
     type: String,
     enum: ['Upcoming', 'Ongoing', 'Completed', 'Cancelled'],
@@ -61,6 +65,13 @@ const eventSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+eventSchema.pre('save', function syncAttendeeCount(next) {
+  const residentCount = Array.isArray(this.attendees) ? this.attendees.length : 0;
+  const guestCount = Array.isArray(this.guestAttendees) ? this.guestAttendees.length : 0;
+  this.attendeeCount = residentCount + guestCount;
+  next();
 });
 
 module.exports = mongoose.model('Event', eventSchema);

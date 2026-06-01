@@ -3,12 +3,21 @@ import { eventsAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { getMediaUrl } from '../../utils/media';
+import EventRegistrationDetails from '../../components/events/EventRegistrationDetails';
+import {
+  canViewEventRegistrations,
+  getRegistrationStatus,
+  getSpotsLeft,
+  isEventOwner
+} from '../../utils/eventRegistrations';
 
 const ManageEvents = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEventLoading, setSelectedEventLoading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     date: '',
@@ -21,7 +30,6 @@ const ManageEvents = () => {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      // Sub-city admin can see both city-wide and woreda-created events.
       const response = await eventsAPI.getAll({ sort: '-createdAt', limit: 100 });
       setEvents(response.data.data || []);
     } catch (error) {
@@ -94,12 +102,52 @@ const ManageEvents = () => {
     });
   };
 
+  const handleViewRegistrations = async (eventId) => {
+    setSelectedEventLoading(true);
+    try {
+      const eventResponse = await eventsAPI.getOne(eventId);
+      const event = eventResponse.data?.data || null;
+
+      if (!event) {
+        setSelectedEvent(null);
+        return;
+      }
+
+      try {
+        const regResponse = await eventsAPI.getRegistrations(eventId);
+        const registrations = regResponse.data?.data;
+        setSelectedEvent({
+          ...event,
+          attendees: registrations?.attendees || [],
+          guestAttendees: registrations?.guestAttendees || []
+        });
+      } catch (regError) {
+        if (regError.response?.status === 403) {
+          setSelectedEvent(event);
+        } else {
+          throw regError;
+        }
+      }
+    } catch (error) {
+      toast.error('Unable to load registrations');
+    } finally {
+      setSelectedEventLoading(false);
+    }
+  };
+
+  const handleSelectEvent = (eventId) => {
+    handleViewRegistrations(eventId);
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this event?')) return;
 
     try {
       await eventsAPI.delete(id);
       toast.success('Event deleted successfully');
+      if (selectedEvent?._id === id) {
+        setSelectedEvent(null);
+      }
       fetchEvents();
     } catch (error) {
       toast.error('Unable to delete event');
@@ -129,11 +177,6 @@ const ManageEvents = () => {
       month: date.toLocaleDateString(undefined, { month: 'short' }).toUpperCase(),
       full: date.toLocaleString()
     };
-  };
-
-  const isEventOwner = (event) => {
-    const organizerId = typeof event.organizer === 'object' ? event.organizer?._id : event.organizer;
-    return String(organizerId || '') === String(user?._id || '');
   };
 
   return (
@@ -223,69 +266,124 @@ const ManageEvents = () => {
           No events created yet.
         </div>
       ) : (
-        <div className="space-y-4">
-          {events.map((event) => (
-            <div key={event._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex flex-col md:flex-row md:justify-between gap-4">
-                <div className="flex items-start gap-4 min-w-0">
-                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">
-                    <span className="text-[10px] tracking-wide">{formatEventTime(event.date).month}</span>
-                    <span className="text-base font-semibold leading-none">{formatEventTime(event.date).day}</span>
+        <>
+          {selectedEvent && (
+            <EventRegistrationDetails
+              event={selectedEvent}
+              loading={selectedEventLoading}
+              onClose={() => setSelectedEvent(null)}
+            />
+          )}
+
+          <div className="space-y-4">
+            {events.map((event) => (
+              <div
+                key={event._id}
+                className={`bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${selectedEvent?._id === event._id ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200'}`}
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSelectEvent(event._id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectEvent(event._id);
+                    }
+                  }}
+                  className="cursor-pointer"
+                >
+                <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">
+                      <span className="text-[10px] tracking-wide">{formatEventTime(event.date).month}</span>
+                      <span className="text-base font-semibold leading-none">{formatEventTime(event.date).day}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">{event.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{event.description || 'No description available.'}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">{event.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{event.description || 'No description available.'}</p>
+
+                  <div className="text-sm text-gray-600 md:text-right">
+                    <p>{formatEventTime(event.date).full}</p>
+                    <p className="mt-1 text-gray-700 font-medium">{event.location}</p>
+                    <span className={`inline-flex items-center mt-2 rounded-full px-3 py-1 text-xs font-medium border ${getRegistrationStatus(event).className}`}>
+                      {getRegistrationStatus(event).label}
+                    </span>
+                    {getSpotsLeft(event) !== null && (
+                      <span className="inline-flex items-center mt-2 rounded-full bg-white px-3 py-1 text-xs font-medium border border-slate-200 text-slate-600">
+                        {getSpotsLeft(event)} spot{getSpotsLeft(event) === 1 ? '' : 's'} left
+                      </span>
+                    )}
+                    <div className="mt-2 flex flex-wrap md:justify-end gap-2">
+                      <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100">
+                        Scope: {event.woreda || 'All Woredas'}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-gray-50 text-gray-700 px-3 py-1 text-xs font-medium border border-gray-200">
+                        {formatOrganizer(event.organizer)}
+                      </span>
+                    </div>
                   </div>
+                </div>
                 </div>
 
-                <div className="text-sm text-gray-600 md:text-right">
-                  <p>{formatEventTime(event.date).full}</p>
-                  <p className="mt-1 text-gray-700 font-medium">{event.location}</p>
-                  <div className="mt-2 flex flex-wrap md:justify-end gap-2">
-                    <span className="inline-flex items-center rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100">
-                      Scope: {event.woreda || 'All Woredas'}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-gray-50 text-gray-700 px-3 py-1 text-xs font-medium border border-gray-200">
-                      {formatOrganizer(event.organizer)}
-                    </span>
+                {(isEventOwner(event, user) || canViewEventRegistrations(event, user)) && (
+                  <div className="relative z-10 mt-4 flex flex-wrap gap-3">
+                    {isEventOwner(event, user) && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50"
+                        onClick={() => handleEdit(event)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canViewEventRegistrations(event, user) && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-lg border border-amber-200 text-amber-700 text-sm font-medium px-3 py-1.5 hover:bg-amber-50"
+                        onClick={() => handleViewRegistrations(event._id)}
+                      >
+                        View registrations
+                      </button>
+                    )}
+                    {isEventOwner(event, user) && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
+                        onClick={() => handleDelete(event._id)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
-                </div>
+                )}
+
+                {event.images?.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {event.images.slice(0, 3).map((image, index) => (
+                      <a
+                        key={`${event._id}-image-${index}`}
+                        href={getMediaUrl(image)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                      >
+                        <img
+                          src={getMediaUrl(image)}
+                          alt={`Event image ${index + 1} for ${event.title}`}
+                          className="h-28 w-full object-cover transition-transform duration-200 hover:scale-105"
+                          loading="lazy"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {isEventOwner(event) && (
-                <div className="mt-4 flex gap-3">
-                  <button className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50" onClick={() => handleEdit(event)}>
-                    Edit
-                  </button>
-                  <button className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50" onClick={() => handleDelete(event._id)}>
-                    Delete
-                  </button>
-                </div>
-              )}
-
-              {event.images?.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {event.images.slice(0, 3).map((image, index) => (
-                    <a
-                      key={`${event._id}-image-${index}`}
-                      href={getMediaUrl(image)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
-                    >
-                      <img
-                        src={getMediaUrl(image)}
-                        alt={`Event image ${index + 1} for ${event.title}`}
-                        className="h-28 w-full object-cover transition-transform duration-200 hover:scale-105"
-                        loading="lazy"
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

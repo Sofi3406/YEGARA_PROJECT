@@ -3,6 +3,7 @@ import { eventsAPI, publicAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../../utils/media';
+import { getRegistrationCount, getRegistrationStatus, getSpotsLeft } from '../../utils/eventRegistrations';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
@@ -171,9 +172,19 @@ const Events = () => {
                       <p className="mt-1 text-sm text-slate-600">{formatEventTime(event.date).full}</p>
                     </div>
                   </div>
-                  <span className="inline-flex shrink-0 items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                    {event.woreda || 'All Woredas'}
-                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                      {event.woreda || 'All Woredas'}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getRegistrationStatus(event).className}`}>
+                      {getRegistrationStatus(event).label}
+                    </span>
+                    {getSpotsLeft(event) !== null && (
+                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                        {getSpotsLeft(event)} spot{getSpotsLeft(event) === 1 ? '' : 's'} left
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <p className="mt-4 text-sm leading-7 text-slate-600">{event.description?.slice(0, 140) || 'No description available.'}</p>
@@ -212,6 +223,14 @@ const Events = () => {
                   <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
                     Organizer: {formatOrganizer(selected.organizer)}
                   </span>
+                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {getRegistrationStatus(selected).label}
+                  </span>
+                  {getSpotsLeft(selected) !== null && (
+                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      {getSpotsLeft(selected)} spot{getSpotsLeft(selected) === 1 ? '' : 's'} left
+                    </span>
+                  )}
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

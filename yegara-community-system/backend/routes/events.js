@@ -7,6 +7,8 @@ const {
   updateEvent,
   deleteEvent,
   getEventsByWoreda,
+  getMyOrganizedEvents,
+  getEventRegistrations,
   registerForEvent,
   getPublicEvents,
   getPublicEvent
@@ -27,11 +29,14 @@ router.route('/')
   .get(getEvents)
   .post(authorize('woreda_admin', 'subcity_admin'), upload.array('images', 5), createEvent);
 
+router.get('/organizer/me', authorize('woreda_admin', 'subcity_admin'), getMyOrganizedEvents);
+router.get('/woreda/:woreda', getEventsByWoreda);
+
+router.get('/:id/registrations', getEventRegistrations);
+
 router.route('/:id')
   .get(getEvent)
   .put(authorize('woreda_admin', 'subcity_admin'), upload.array('images', 5), updateEvent)
   .delete(authorize('woreda_admin', 'subcity_admin'), deleteEvent);
-
-router.get('/woreda/:woreda', getEventsByWoreda);
 
 module.exports = router;

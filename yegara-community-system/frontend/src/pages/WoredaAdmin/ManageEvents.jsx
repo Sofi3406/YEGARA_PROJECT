@@ -3,12 +3,21 @@ import { eventsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../../utils/media';
+import EventRegistrationDetails from '../../components/events/EventRegistrationDetails';
+import {
+  canViewEventRegistrations,
+  getRegistrationStatus,
+  getSpotsLeft,
+  isEventOwner
+} from '../../utils/eventRegistrations';
 
 const ManageEvents = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEventLoading, setSelectedEventLoading] = useState(false);
   const [form, setForm] = useState({
     title: '',
     date: '',
@@ -91,6 +100,43 @@ const ManageEvents = () => {
     });
   };
 
+  const handleViewRegistrations = async (eventId) => {
+    setSelectedEventLoading(true);
+    try {
+      const eventResponse = await eventsAPI.getOne(eventId);
+      const event = eventResponse.data?.data || null;
+
+      if (!event) {
+        setSelectedEvent(null);
+        return;
+      }
+
+      try {
+        const regResponse = await eventsAPI.getRegistrations(eventId);
+        const registrations = regResponse.data?.data;
+        setSelectedEvent({
+          ...event,
+          attendees: registrations?.attendees || [],
+          guestAttendees: registrations?.guestAttendees || []
+        });
+      } catch (regError) {
+        if (regError.response?.status === 403) {
+          setSelectedEvent(event);
+        } else {
+          throw regError;
+        }
+      }
+    } catch (error) {
+      toast.error('Unable to load registrations');
+    } finally {
+      setSelectedEventLoading(false);
+    }
+  };
+
+  const handleSelectEvent = (eventId) => {
+    handleViewRegistrations(eventId);
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this event?')) return;
     try {
@@ -113,11 +159,6 @@ const ManageEvents = () => {
       month: date.toLocaleDateString(undefined, { month: 'short' }).toUpperCase(),
       full: date.toLocaleString()
     };
-  };
-
-  const isEventOwner = (event) => {
-    const organizerId = typeof event.organizer === 'object' ? event.organizer?._id : event.organizer;
-    return String(organizerId || '') === String(user?._id || '');
   };
 
   return (
@@ -205,9 +246,33 @@ const ManageEvents = () => {
           No events created yet.
         </div>
       ) : (
-        <div className="space-y-4">
+        <>
+          {selectedEvent && (
+            <EventRegistrationDetails
+              event={selectedEvent}
+              loading={selectedEventLoading}
+              onClose={() => setSelectedEvent(null)}
+            />
+          )}
+
+          <div className="space-y-4">
           {events.map((event) => (
-            <div key={event._id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div
+              key={event._id}
+              className={`bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${selectedEvent?._id === event._id ? 'border-amber-300 ring-2 ring-amber-100' : 'border-gray-200'}`}
+            >
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleSelectEvent(event._id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectEvent(event._id);
+                  }
+                }}
+                className="cursor-pointer"
+              >
               <div className="flex flex-col md:flex-row md:justify-between gap-4">
                 <div className="flex items-start gap-4 min-w-0">
                   <div className="shrink-0 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 text-white w-14 h-14 flex flex-col items-center justify-center shadow-sm">
@@ -223,20 +288,50 @@ const ManageEvents = () => {
                 <div className="text-sm text-gray-600 md:text-right">
                   <p>{formatEventTime(event.date).full}</p>
                   <p className="mt-1 text-gray-700 font-medium">{event.location}</p>
+                  <span className={`inline-flex items-center mt-2 rounded-full px-3 py-1 text-xs font-medium border ${getRegistrationStatus(event).className}`}>
+                    {getRegistrationStatus(event).label}
+                  </span>
+                  {getSpotsLeft(event) !== null && (
+                    <span className="inline-flex items-center mt-2 rounded-full bg-white px-3 py-1 text-xs font-medium border border-slate-200 text-slate-600">
+                      {getSpotsLeft(event)} spot{getSpotsLeft(event) === 1 ? '' : 's'} left
+                    </span>
+                  )}
                   <span className="inline-flex items-center mt-2 rounded-full bg-primary-50 text-primary-700 px-3 py-1 text-xs font-medium border border-primary-100">
                     Scope: {event.woreda || user?.woreda || 'Woreda'}
                   </span>
                 </div>
               </div>
+              </div>
 
-              {isEventOwner(event) && (
-                <div className="mt-4 flex gap-3">
-                  <button className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50" onClick={() => handleEdit(event)}>
-                    Edit
-                  </button>
-                  <button className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50" onClick={() => handleDelete(event._id)}>
-                    Delete
-                  </button>
+              {(isEventOwner(event, user) || canViewEventRegistrations(event, user)) && (
+                <div className="relative z-10 mt-4 flex flex-wrap gap-3">
+                  {isEventOwner(event, user) && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center rounded-lg border border-primary-200 text-primary-700 text-sm font-medium px-3 py-1.5 hover:bg-primary-50"
+                      onClick={() => handleEdit(event)}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {canViewEventRegistrations(event, user) && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center rounded-lg border border-amber-200 text-amber-700 text-sm font-medium px-3 py-1.5 hover:bg-amber-50"
+                      onClick={() => handleViewRegistrations(event._id)}
+                    >
+                      View registrations
+                    </button>
+                  )}
+                  {isEventOwner(event, user) && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center rounded-lg border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 hover:bg-red-50"
+                      onClick={() => handleDelete(event._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -262,7 +357,8 @@ const ManageEvents = () => {
               )}
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

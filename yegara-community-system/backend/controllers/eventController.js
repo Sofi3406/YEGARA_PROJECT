@@ -5,6 +5,75 @@ const ErrorResponse = require('../utils/errorResponse');
 const { buildWoredaRegex } = require('../utils/woreda');
 
 const toWebPath = (filePath = '') => filePath.replace(/\\/g, '/');
+const countEventRegistrations = (event) => {
+  if (!event) return 0;
+
+  const attendeeCount = Array.isArray(event.attendees) ? event.attendees.length : 0;
+  const guestCount = Array.isArray(event.guestAttendees) ? event.guestAttendees.length : 0;
+
+  return attendeeCount + guestCount;
+};
+
+const getRegistrationCount = (event) => {
+  if (!event) return 0;
+
+  const fromArrays = countEventRegistrations(event);
+
+  return Math.max(
+    fromArrays,
+    Number(event.registrationCount) || 0,
+    Number(event.attendeeCount) || 0
+  );
+};
+
+const serializeEvent = (event) => {
+  const eventObject = typeof event.toObject === 'function' ? event.toObject() : event;
+  return {
+    ...eventObject,
+    registrationCount: getRegistrationCount(eventObject)
+  };
+};
+
+const serializeEventSummary = (event) => {
+  const serialized = serializeEvent(event);
+  delete serialized.attendees;
+  delete serialized.guestAttendees;
+  return serialized;
+};
+
+const normalizeId = (value) => {
+  if (value == null) return '';
+
+  if (typeof value === 'object' && value._id != null) {
+    return String(value._id);
+  }
+
+  return String(value);
+};
+
+const canViewEventRegistrations = (user, event) => {
+  if (!user || !event) return false;
+
+  const organizerId = normalizeId(event.organizer?._id || event.organizer);
+  const userId = normalizeId(user._id || user.id);
+
+  if (organizerId && userId && organizerId === userId) {
+    return true;
+  }
+
+  return ['woreda_admin', 'subcity_admin'].includes(user.role);
+};
+
+const serializeEventForUser = (event, user) => {
+  const serialized = serializeEvent(event);
+
+  if (!canViewEventRegistrations(user, event)) {
+    delete serialized.attendees;
+    delete serialized.guestAttendees;
+  }
+
+  return serialized;
+};
 
 // @desc    Get all events
 // @route   GET /api/events
@@ -68,7 +137,26 @@ exports.getEvents = async (req, res, next) => {
       success: true,
       count: events.length,
       pagination,
-      data: events
+      data: events.map(serializeEventSummary)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get events organized by current user
+// @route   GET /api/events/organizer/me
+// @access  Private (Woreda/Subcity Admin)
+exports.getMyOrganizedEvents = async (req, res, next) => {
+  try {
+    const events = await Event.find({ organizer: req.user.id })
+      .populate('organizer', 'fullName email role')
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      data: events.map(serializeEventSummary)
     });
   } catch (err) {
     next(err);
@@ -89,7 +177,7 @@ exports.getPublicEvents = async (req, res, next) => {
     const total = await Event.countDocuments(baseFilter);
 
     const events = await Event.find(baseFilter)
-      .select('title description date endDate location images woreda status createdAt')
+      .select('title description date endDate location images woreda status createdAt attendees guestAttendees attendeeCount')
       .populate('organizer', 'fullName role')
       .sort('-createdAt')
       .skip(startIndex)
@@ -99,7 +187,17 @@ exports.getPublicEvents = async (req, res, next) => {
     if (startIndex + events.length < total) pagination.next = { page: page + 1, limit };
     if (startIndex > 0) pagination.prev = { page: page - 1, limit };
 
-    res.status(200).json({ success: true, count: events.length, pagination, data: events });
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      pagination,
+      data: events.map((event) => {
+        const serialized = serializeEvent(event);
+        delete serialized.attendees;
+        delete serialized.guestAttendees;
+        return serialized;
+      })
+    });
   } catch (err) {
     next(err);
   }
@@ -133,17 +231,20 @@ exports.getPublicEvent = async (req, res, next) => {
 // @access  Private
 exports.getEvent = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id)
-      .populate('organizer', 'fullName email role')
-      .populate('attendees', 'fullName email');
+    let eventQuery = Event.findById(req.params.id).populate('organizer', 'fullName email role');
+    const event = await eventQuery;
 
     if (!event) {
       return next(new ErrorResponse('Event not found', 404));
     }
 
+    if (canViewEventRegistrations(req.user, event)) {
+      await event.populate('attendees', 'fullName email phone');
+    }
+
     res.status(200).json({
       success: true,
-      data: event
+      data: serializeEventForUser(event, req.user)
     });
   } catch (err) {
     next(err);
@@ -303,7 +404,39 @@ exports.getEventsByWoreda = async (req, res, next) => {
     res.status(200).json({
       success: true,
       count: events.length,
-      data: events
+      data: events.map(serializeEventSummary)
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get event registrations (organizer / admins)
+// @route   GET /api/events/:id/registrations
+// @access  Private (Organizer, Woreda/Subcity Admin)
+exports.getEventRegistrations = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id)
+      .populate('organizer', 'fullName email role')
+      .populate('attendees', 'fullName email phone');
+
+    if (!event) {
+      return next(new ErrorResponse('Event not found', 404));
+    }
+
+    if (!canViewEventRegistrations(req.user, event)) {
+      return next(new ErrorResponse('Not authorized to view registrations for this event', 403));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        eventId: event._id,
+        title: event.title,
+        registrationCount: getRegistrationCount(event),
+        attendees: event.attendees || [],
+        guestAttendees: event.guestAttendees || []
+      }
     });
   } catch (err) {
     next(err);
@@ -340,6 +473,7 @@ exports.registerForEvent = async (req, res, next) => {
       }
 
       event.attendees.push(req.user.id);
+      event.attendeeCount = countEventRegistrations(event);
     } else {
       const fullName = String(req.body.fullName || '').trim();
       const email = String(req.body.email || '').trim().toLowerCase();
@@ -359,6 +493,7 @@ exports.registerForEvent = async (req, res, next) => {
 
       event.guestAttendees = event.guestAttendees || [];
       event.guestAttendees.push({ fullName, email, phone });
+      event.attendeeCount = countEventRegistrations(event);
     }
 
     await event.save();

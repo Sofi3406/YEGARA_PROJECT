@@ -85,10 +85,12 @@ export const analyticsAPI = {
 export const eventsAPI = {
   getAll: (params) => api.get('/events', { params }),
   getOne: (id) => api.get(`/events/${id}`),
+  getMyOrganized: () => api.get('/events/organizer/me'),
+  getRegistrations: (id) => api.get(`/events/${id}/registrations`),
   create: (data) => api.post('/events', data, withFormData(data)),
   update: (id, data) => api.put(`/events/${id}`, data, withFormData(data)),
   delete: (id) => api.delete(`/events/${id}`),
-  getByWoreda: (woreda) => api.get(`/events/woreda/${woreda}`),
+  getByWoreda: (woreda) => api.get(`/events/woreda/${encodeURIComponent(woreda)}`),
   register: (id, data) => api.post(`/events/${id}/register`, data)
 };
 

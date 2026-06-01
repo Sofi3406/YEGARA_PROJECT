@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { eventsAPI, meetingsAPI, reportsAPI, usersAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { getRegistrationCount } from '../../utils/eventRegistrations';
 
 const statusStyles = {
   Pending: 'bg-yellow-100 text-yellow-800',
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState([]);
   const [events, setEvents] = useState([]);
+  const [myEvents, setMyEvents] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [residentCount, setResidentCount] = useState(0);
   const [officerCount, setOfficerCount] = useState(0);
@@ -28,11 +30,12 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const [reportsResponse, residentsResponse, officersResponse, eventsResponse, meetingsResponse] = await Promise.all([
+        const [reportsResponse, residentsResponse, officersResponse, eventsResponse, myEventsResponse, meetingsResponse] = await Promise.all([
           reportsAPI.getMyReports(),
           usersAPI.getAll({ role: 'resident' }),
           usersAPI.getAll({ role: 'officer' }),
           eventsAPI.getByWoreda(user.woreda),
+          eventsAPI.getMyOrganized(),
           meetingsAPI.getAll()
         ]);
 
@@ -42,6 +45,7 @@ const Dashboard = () => {
         setResidentCount(residentsResponse.data?.count || 0);
         setOfficerCount(officersResponse.data?.count || 0);
         setEvents(eventsResponse.data?.data || []);
+        setMyEvents(myEventsResponse.data?.data || []);
         setMeetings(meetingsResponse.data?.data || []);
       } catch (error) {
         if (isMounted) {
@@ -116,6 +120,38 @@ const Dashboard = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">My events & registrations</h2>
+          <Link to="/woreda-admin/events" className="text-sm text-primary-600 hover:text-primary-700">
+            Manage events
+          </Link>
+        </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-24">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : myEvents.length === 0 ? (
+          <p className="mt-4 text-sm text-gray-500">You have not created any events yet.</p>
+        ) : (
+          <div className="mt-4 divide-y divide-gray-200">
+            {myEvents.slice(0, 5).map((event) => (
+              <div key={event._id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{event.title}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(event.date).toLocaleString()} · {event.location}
+                  </p>
+                </div>
+                <span className="text-xs px-3 py-1 rounded-full w-fit bg-amber-50 text-amber-800 border border-amber-100 font-medium">
+                  {getRegistrationCount(event)} registered
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
