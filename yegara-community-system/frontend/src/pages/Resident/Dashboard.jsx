@@ -234,7 +234,7 @@ const Dashboard = () => {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Latest announcements</h2>
-            <Link to="/announcements" className="text-sm text-primary-600 hover:text-primary-700">
+            <Link to="/resident/announcements" className="text-sm text-primary-600 hover:text-primary-700">
               View all
             </Link>
           </div>

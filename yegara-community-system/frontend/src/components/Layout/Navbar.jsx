@@ -126,6 +126,10 @@ const Navbar = () => {
 
     if (!user) return '/announcements';
 
+    if (user.role === 'resident') {
+      return '/resident/announcements';
+    }
+
     if (user.role === 'officer') {
       return '/officer/announcements';
     }
