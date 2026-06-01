@@ -94,6 +94,7 @@ const Dashboard = () => {
           <>
             <PortalHeroLink to="/woreda-admin/reports">All reports</PortalHeroLink>
             <PortalHeroLink to="/woreda-admin/events" variant="ghost">Manage events</PortalHeroLink>
+            <PortalHeroLink to="/woreda-admin/community-events" variant="ghost">Register for events</PortalHeroLink>
             <PortalHeroLink to="/woreda-admin/announcements" variant="ghost">Announcements</PortalHeroLink>
           </>
         }
@@ -180,6 +181,7 @@ const Dashboard = () => {
             <div className="space-y-3">
               <PortalQuickLink to="/woreda-admin/officers" icon="👥">Manage officers</PortalQuickLink>
               <PortalQuickLink to="/woreda-admin/analytics" icon="📊">View analytics</PortalQuickLink>
+              <PortalQuickLink to="/woreda-admin/community-events" icon="📅">Register for events</PortalQuickLink>
               <PortalQuickLink to="/woreda-admin/meetings" icon="🎥">Virtual meetings</PortalQuickLink>
               <PortalQuickLink to="/woreda-admin/announcements" icon="📢">Publish announcement</PortalQuickLink>
             </div>

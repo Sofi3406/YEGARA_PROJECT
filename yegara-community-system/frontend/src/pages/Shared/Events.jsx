@@ -3,7 +3,13 @@ import { eventsAPI, publicAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../../utils/media';
-import { getRegistrationCount, getRegistrationStatus, getSpotsLeft } from '../../utils/eventRegistrations';
+import {
+  canRegisterForEvent,
+  getRegistrationBlockReason,
+  getRegistrationStatus,
+  getSpotsLeft,
+  isUserRegisteredForEvent
+} from '../../utils/eventRegistrations';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
@@ -13,11 +19,25 @@ const Events = () => {
   const [registering, setRegistering] = useState(false);
   const { user } = useAuth();
 
+  const usesRegisterableFeed = user?.role === 'officer' || user?.role === 'woreda_admin';
+
+  const loadEvents = async () => {
+    if (!user) {
+      const response = await publicAPI.getEvents({ limit: 50 });
+      return response.data.data || [];
+    }
+    if (usesRegisterableFeed) {
+      const response = await eventsAPI.getRegisterable();
+      return response.data.data || [];
+    }
+    const response = await eventsAPI.getAll();
+    return response.data.data || [];
+  };
+
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const response = user ? await eventsAPI.getAll() : await publicAPI.getEvents({ limit: 50 });
-      setEvents(response.data.data || []);
+      setEvents(await loadEvents());
     } catch (error) {
       toast.error('Unable to load events');
     } finally {
@@ -34,7 +54,10 @@ const Events = () => {
     try {
       await eventsAPI.register(eventId);
       toast.success('Registered for event');
-      fetchEvents();
+      const data = await loadEvents();
+      setEvents(data);
+      const updated = data.find((event) => event._id === eventId);
+      if (updated) setSelected(updated);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Unable to register');
     }
@@ -42,7 +65,7 @@ const Events = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [user?.role]);
 
   const formatOrganizer = (organizer) => {
     if (!organizer) return 'Admin';
@@ -102,6 +125,24 @@ const Events = () => {
 
   const selectedTime = selected ? formatEventTime(selected.date) : null;
 
+  const selectedRegistered = selected ? isUserRegisteredForEvent(selected, user) : false;
+  const selectedCanRegister = selected && user ? canRegisterForEvent(selected, user) : false;
+  const selectedBlockReason = selected ? getRegistrationBlockReason(selected, user) : null;
+  const selectedSpotsLeft = selected ? getSpotsLeft(selected) : null;
+  const selectedFull = selectedSpotsLeft === 0;
+
+  const pageSubtitle = usesRegisterableFeed
+    ? user?.role === 'officer'
+      ? 'Register for community events published by your Woreda or Sub city administrators.'
+      : 'Register for Sub city administrator events that apply to your woreda.'
+    : 'Explore meetings, gatherings, and civic activities in a cleaner layout built to make each event easy to scan.';
+
+  const emptyMessage = usesRegisterableFeed
+    ? user?.role === 'officer'
+      ? 'No registrable events from Woreda or Sub city administrators in your woreda yet.'
+      : 'No registrable Sub city administrator events for your woreda yet.'
+    : 'When administrators publish new events, they will appear here with full details and registration options.';
+
   return (
     <div className="space-y-8">
       <div className="relative overflow-hidden rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-950 via-amber-900 to-orange-800 px-6 py-8 text-white shadow-xl md:px-8">
@@ -113,7 +154,7 @@ const Events = () => {
             </p>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">Community events</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-amber-50/85 md:text-base">
-              Explore meetings, gatherings, and civic activities in a cleaner layout built to make each event easy to scan.
+              {pageSubtitle}
             </p>
           </div>
 
@@ -133,7 +174,7 @@ const Events = () => {
       {events.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-amber-200 bg-white p-8 text-center shadow-sm">
           <p className="text-lg font-semibold text-slate-900">No upcoming events yet</p>
-          <p className="mt-2 text-sm text-slate-500">When administrators publish new events, they will appear here with full details and registration options.</p>
+          <p className="mt-2 text-sm text-slate-500">{emptyMessage}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.45fr_0.95fr]">
@@ -179,6 +220,11 @@ const Events = () => {
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getRegistrationStatus(event).className}`}>
                       {getRegistrationStatus(event).label}
                     </span>
+                    {isUserRegisteredForEvent(event, user) && (
+                      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        You are registered
+                      </span>
+                    )}
                     {getSpotsLeft(event) !== null && (
                       <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
                         {getSpotsLeft(event)} spot{getSpotsLeft(event) === 1 ? '' : 's'} left
@@ -284,12 +330,29 @@ const Events = () => {
                 <p className="leading-relaxed text-slate-600">{selected.description || 'No description available.'}</p>
 
                 {user ? (
-                  <button
-                    onClick={() => handleRegister(selected._id)}
-                    className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500"
-                  >
-                    Register
-                  </button>
+                  <div className="space-y-2">
+                    {selectedRegistered ? (
+                      <div className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800">
+                        You are registered for this event
+                      </div>
+                    ) : selectedFull ? (
+                      <div className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-800">
+                        This event is full
+                      </div>
+                    ) : selectedCanRegister ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRegister(selected._id)}
+                        className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200 transition-transform hover:-translate-y-0.5 hover:from-amber-500 hover:to-orange-500"
+                      >
+                        Register for event
+                      </button>
+                    ) : (
+                      <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
+                        {selectedBlockReason || 'Registration is not available for this event'}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
                     <p className="text-sm font-semibold text-slate-900">Register without login</p>

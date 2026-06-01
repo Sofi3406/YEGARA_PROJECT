@@ -8,6 +8,7 @@ const {
   deleteEvent,
   getEventsByWoreda,
   getMyOrganizedEvents,
+  getRegisterableEvents,
   getEventRegistrations,
   registerForEvent,
   getPublicEvents,
@@ -30,6 +31,7 @@ router.route('/')
   .post(authorize('woreda_admin', 'subcity_admin'), upload.array('images', 5), createEvent);
 
 router.get('/organizer/me', authorize('woreda_admin', 'subcity_admin'), getMyOrganizedEvents);
+router.get('/registerable', authorize('officer', 'woreda_admin'), getRegisterableEvents);
 router.get('/woreda/:woreda', getEventsByWoreda);
 
 router.get('/:id/registrations', getEventRegistrations);

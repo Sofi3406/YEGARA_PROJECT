@@ -202,6 +202,7 @@ function App() {
                     <Route path="reports" element={<WoredaAdminReports />} />
                     <Route path="officers" element={<ManageOfficers />} />
                     <Route path="events" element={<ManageEvents />} />
+                    <Route path="community-events" element={<Events />} />
                     <Route path="meetings" element={<VirtualMeetings />} />
                     <Route path="announcements" element={<OfficerAnnouncements />} />
                     <Route path="analytics" element={<WoredaAdminAnalytics />} />

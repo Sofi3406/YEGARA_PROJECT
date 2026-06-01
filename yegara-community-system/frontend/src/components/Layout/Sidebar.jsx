@@ -68,7 +68,7 @@ const OfficerSidebar = ({ onLogout }) => {
     { to: '/officer/updates', icon: DocumentTextIcon, label: 'Post Updates' },
     { to: '/officer/meetings', icon: CalendarIcon, label: 'Virtual Meetings' },
     { to: '/officer/announcements', icon: DocumentTextIcon, label: 'Announcements' },
-    { to: '/officer/events', icon: CalendarIcon, label: 'Events' },
+    { to: '/officer/events', icon: CalendarIcon, label: 'Register for Events' },
     { to: '/profile/edit', icon: UserCircleIcon, label: 'Edit Profile' }
   ];
 
@@ -115,6 +115,7 @@ const WoredaAdminSidebar = ({ onLogout }) => {
     { to: '/woreda-admin/reports', icon: DocumentTextIcon, label: 'All Reports' },
     { to: '/woreda-admin/officers', icon: UserGroupIcon, label: 'Manage Officers' },
     { to: '/woreda-admin/events', icon: CalendarIcon, label: 'Manage Events' },
+    { to: '/woreda-admin/community-events', icon: CalendarIcon, label: 'Register for Events' },
     { to: '/woreda-admin/meetings', icon: CalendarIcon, label: 'Virtual Meetings' },
     { to: '/woreda-admin/announcements', icon: DocumentTextIcon, label: 'Announcements' },
     { to: '/woreda-admin/analytics', icon: ChartBarIcon, label: 'Analytics' },

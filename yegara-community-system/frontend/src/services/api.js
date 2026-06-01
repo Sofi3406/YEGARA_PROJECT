@@ -86,6 +86,7 @@ export const eventsAPI = {
   getAll: (params) => api.get('/events', { params }),
   getOne: (id) => api.get(`/events/${id}`),
   getMyOrganized: () => api.get('/events/organizer/me'),
+  getRegisterable: () => api.get('/events/registerable'),
   getRegistrations: (id) => api.get(`/events/${id}/registrations`),
   create: (data) => api.post('/events', data, withFormData(data)),
   update: (id, data) => api.put(`/events/${id}`, data, withFormData(data)),

@@ -105,6 +105,9 @@ const Dashboard = () => {
             <OfficerQuickLink to="/officer/announcements" icon="📢">
               Publish announcement
             </OfficerQuickLink>
+            <OfficerQuickLink to="/officer/events" icon="📅">
+              Register for events
+            </OfficerQuickLink>
           </div>
         </OfficerPanel>
       </div>

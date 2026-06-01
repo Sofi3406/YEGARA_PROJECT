@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const ErrorResponse = require('../utils/errorResponse');
 const { buildWoredaRegex } = require('../utils/woreda');
+const { validateRegistrationEligibility } = require('../utils/eventRegistrationEligibility');
 
 const toWebPath = (filePath = '') => filePath.replace(/\\/g, '/');
 const countEventRegistrations = (event) => {
@@ -34,8 +35,15 @@ const serializeEvent = (event) => {
   };
 };
 
-const serializeEventSummary = (event) => {
+const serializeEventSummary = (event, userId) => {
   const serialized = serializeEvent(event);
+
+  if (userId && Array.isArray(event.attendees)) {
+    serialized.isRegistered = event.attendees.some(
+      (attendee) => normalizeId(attendee) === normalizeId(userId)
+    );
+  }
+
   delete serialized.attendees;
   delete serialized.guestAttendees;
   return serialized;
@@ -137,7 +145,42 @@ exports.getEvents = async (req, res, next) => {
       success: true,
       count: events.length,
       pagination,
-      data: events.map(serializeEventSummary)
+      data: events.map((event) => serializeEventSummary(event, req.user?.id))
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Get events the current user can register for (officer / woreda admin)
+// @route   GET /api/events/registerable
+// @access  Private (Officer, Woreda Admin)
+exports.getRegisterableEvents = async (req, res, next) => {
+  try {
+    if (!['officer', 'woreda_admin'].includes(req.user.role)) {
+      return next(new ErrorResponse('Only officers and woreda administrators can use this endpoint', 403));
+    }
+
+    const woredaRegex = buildWoredaRegex(req.user.woreda);
+    const woredaFilter = woredaRegex
+      ? { $or: [{ woreda: { $regex: woredaRegex } }, { woreda: 'All Woredas' }] }
+      : { $or: [{ woreda: req.user.woreda }, { woreda: 'All Woredas' }] };
+
+    const events = await Event.find({
+      ...woredaFilter,
+      status: { $nin: ['Cancelled', 'Completed'] }
+    })
+      .populate('organizer', 'fullName email role')
+      .sort('-createdAt');
+
+    const data = events
+      .filter((event) => validateRegistrationEligibility(req.user, event).allowed)
+      .map((event) => serializeEventSummary(event, req.user.id));
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
     });
   } catch (err) {
     next(err);
@@ -156,7 +199,7 @@ exports.getMyOrganizedEvents = async (req, res, next) => {
     res.status(200).json({
       success: true,
       count: events.length,
-      data: events.map(serializeEventSummary)
+      data: events.map((event) => serializeEventSummary(event, req.user?.id))
     });
   } catch (err) {
     next(err);
@@ -404,7 +447,7 @@ exports.getEventsByWoreda = async (req, res, next) => {
     res.status(200).json({
       success: true,
       count: events.length,
-      data: events.map(serializeEventSummary)
+      data: events.map((event) => serializeEventSummary(event, req.user?.id))
     });
   } catch (err) {
     next(err);
@@ -448,7 +491,7 @@ exports.getEventRegistrations = async (req, res, next) => {
 // @access  Private
 exports.registerForEvent = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findById(req.params.id).populate('organizer', 'fullName email role');
 
     if (!event) {
       return next(new ErrorResponse('Event not found', 404));
@@ -464,6 +507,11 @@ exports.registerForEvent = async (req, res, next) => {
     }
 
     if (req.user) {
+      const eligibility = validateRegistrationEligibility(req.user, event);
+      if (!eligibility.allowed) {
+        return next(new ErrorResponse(eligibility.reason, 403));
+      }
+
       const alreadyRegistered = event.attendees.some(
         attendee => attendee.toString() === req.user.id
       );

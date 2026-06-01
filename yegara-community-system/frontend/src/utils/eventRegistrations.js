@@ -25,6 +25,51 @@ export const isEventsAdmin = (user) =>
 export const canViewEventRegistrations = (event, user) =>
   isEventOwner(event, user) || isEventsAdmin(user);
 
+const HIGHER_ORGANIZER_ROLES = {
+  officer: ['woreda_admin', 'subcity_admin'],
+  woreda_admin: ['subcity_admin']
+};
+
+export const canRegisterForEvent = (event, user) => {
+  if (!event || !user) return false;
+  if (isEventOwner(event, user)) return false;
+
+  if (user.role === 'resident') return true;
+
+  const organizerRole = event.organizer?.role;
+  const allowedOrganizers = HIGHER_ORGANIZER_ROLES[user.role];
+
+  if (!allowedOrganizers) return false;
+
+  return allowedOrganizers.includes(organizerRole);
+};
+
+export const isUserRegisteredForEvent = (event, user) => {
+  if (!event) return Boolean(event?.isRegistered);
+  if (typeof event.isRegistered === 'boolean') return event.isRegistered;
+
+  const userId = getCurrentUserId(user);
+  if (!userId || !Array.isArray(event.attendees)) return false;
+
+  return event.attendees.some((attendee) => normalizeId(attendee) === userId);
+};
+
+export const getRegistrationBlockReason = (event, user) => {
+  if (!event || !user) return null;
+  if (isEventOwner(event, user)) return 'You organized this event';
+  if (isUserRegisteredForEvent(event, user)) return null;
+
+  if (user.role === 'officer' && !canRegisterForEvent(event, user)) {
+    return 'Officers can register only for Woreda or Sub city admin events';
+  }
+
+  if (user.role === 'woreda_admin' && !canRegisterForEvent(event, user)) {
+    return 'Woreda admins can register only for Sub city admin events';
+  }
+
+  return null;
+};
+
 export const countFromRegistrationArrays = (event) => {
   if (!event) return 0;
 

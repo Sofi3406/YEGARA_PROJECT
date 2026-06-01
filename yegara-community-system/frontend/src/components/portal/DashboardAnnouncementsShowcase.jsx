@@ -26,24 +26,28 @@ const AnnouncementImage = ({ src, alt, variant = 'featured' }) => {
   if (showPlaceholder) {
     return (
       <div className={`portal-announce-media portal-announce-media--placeholder portal-announce-media--${variant}`}>
-        <span className="portal-announce-media__icon" aria-hidden>
-          📢
-        </span>
-        <span className="portal-announce-media__placeholder-label">Community notice</span>
+        <div className="portal-announce-media__frame">
+          <span className="portal-announce-media__icon" aria-hidden>
+            📢
+          </span>
+          <span className="portal-announce-media__placeholder-label">Community notice</span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={`portal-announce-media portal-announce-media--${variant}`}>
-      <img
-        src={getMediaUrl(src)}
-        alt={alt}
-        className="portal-announce-media__img"
-        loading="lazy"
-        onError={() => setImageError(true)}
-      />
-      <div className="portal-announce-media__shine" aria-hidden />
+      <div className="portal-announce-media__frame">
+        <img
+          src={getMediaUrl(src)}
+          alt={alt}
+          className="portal-announce-media__img"
+          loading="lazy"
+          onError={() => setImageError(true)}
+        />
+        <div className="portal-announce-media__shine" aria-hidden />
+      </div>
     </div>
   );
 };
@@ -117,8 +121,10 @@ const DashboardAnnouncementsShowcase = ({
         </Link>
       </div>
 
-      <article className="portal-announce-featured">
-        <AnnouncementImage src={featured.image} alt={featured.title} variant="featured" />
+      <article className="portal-announce-featured portal-announce-featured--split">
+        <div className="portal-announce-featured__media-col">
+          <AnnouncementImage src={featured.image} alt={featured.title} variant="featured" />
+        </div>
         <div className="portal-announce-featured__content">
           <div className="portal-announce-featured__top">
             <div className="officer-date-badge">
