@@ -13,8 +13,14 @@ import {
   PortalLoading,
   PortalEmpty,
   PortalQuickLink,
+  PortalField,
   statusToClass
 } from '../../components/portal/PortalPageShell';
+import {
+  defaultReportYear,
+  filterReportsByYear,
+  REPORT_FILTER_YEARS
+} from '../../utils/reportYearFilter';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -26,6 +32,7 @@ const Dashboard = () => {
   const [residentCount, setResidentCount] = useState(0);
   const [officerCount, setOfficerCount] = useState(0);
   const [announcements, setAnnouncements] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(defaultReportYear);
 
   useEffect(() => {
     if (!user?.woreda) return undefined;
@@ -65,23 +72,28 @@ const Dashboard = () => {
     return () => { isMounted = false; };
   }, [user?.woreda]);
 
+  const yearReports = useMemo(
+    () => filterReportsByYear(reports, selectedYear),
+    [reports, selectedYear]
+  );
+
   const reportStats = useMemo(() => {
-    const pending = reports.filter((r) => r.status === 'Pending').length;
-    const inProgress = reports.filter((r) => r.status === 'In Progress').length;
-    const resolved = reports.filter((r) => r.status === 'Resolved').length;
-    const rejected = reports.filter((r) => r.status === 'Rejected').length;
-    return { total: reports.length, pending, inProgress, resolved, rejected };
-  }, [reports]);
+    const pending = yearReports.filter((r) => r.status === 'Pending').length;
+    const inProgress = yearReports.filter((r) => r.status === 'In Progress').length;
+    const resolved = yearReports.filter((r) => r.status === 'Resolved').length;
+    const rejected = yearReports.filter((r) => r.status === 'Rejected').length;
+    return { total: yearReports.length, pending, inProgress, resolved, rejected };
+  }, [yearReports]);
 
   const categoryBreakdown = useMemo(() => {
-    return reports.reduce((acc, report) => {
+    return yearReports.reduce((acc, report) => {
       const key = report.category || 'Other';
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
-  }, [reports]);
+  }, [yearReports]);
 
-  const recentReports = useMemo(() => reports.slice(0, 5), [reports]);
+  const recentReports = useMemo(() => yearReports.slice(0, 5), [yearReports]);
   const total = Math.max(reportStats.total, 1);
 
   return (
@@ -89,7 +101,7 @@ const Dashboard = () => {
       <PortalHero
         eyebrow="Woreda administration"
         title="Woreda admin dashboard"
-        description={`Overview of reports, users, events, and meetings in ${user?.woreda || 'your woreda'}.`}
+        description={`Overview of reports, users, events, and meetings in ${user?.woreda || 'your woreda'} for ${selectedYear}.`}
         actions={
           <>
             <PortalHeroLink to="/woreda-admin/reports">All reports</PortalHeroLink>
@@ -99,6 +111,25 @@ const Dashboard = () => {
           </>
         }
       />
+
+      <div className="officer-form-panel">
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <PortalField label="Report year">
+            <select
+              className="input mt-0"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              disabled={loading}
+            >
+              {REPORT_FILTER_YEARS.map((year) => (
+                <option key={year} value={String(year)}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </PortalField>
+        </div>
+      </div>
 
       <PortalStatGrid
         stats={[

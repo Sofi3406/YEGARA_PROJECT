@@ -30,6 +30,16 @@ exports.getUsers = async (req, res, next) => {
     if (req.query.department) {
       query.department = req.query.department;
     }
+
+    // Sub-city admins can filter by woreda
+    if (
+      req.user.role === 'subcity_admin' &&
+      req.query.woreda &&
+      req.query.woreda !== 'all'
+    ) {
+      const woredaRegex = buildWoredaRegex(req.query.woreda);
+      query.woreda = woredaRegex ? { $regex: woredaRegex } : req.query.woreda;
+    }
     
     const users = await User.find(query).select('-password').sort('-createdAt');
     

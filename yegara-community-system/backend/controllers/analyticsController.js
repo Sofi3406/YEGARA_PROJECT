@@ -5,12 +5,25 @@ const Resource = require('../models/Resource');
 const Analytics = require('../models/Analytics');
 const { buildWoredaRegex } = require('../utils/woreda');
 
-// Helper function to get date range
+const REPORT_FILTER_YEARS = [2026, 2027, 2028, 2029, 2030];
+
+const getYearDateRange = (year) => {
+  const y = Number(year);
+  if (!REPORT_FILTER_YEARS.includes(y)) {
+    return null;
+  }
+  return {
+    start: new Date(y, 0, 1, 0, 0, 0, 0),
+    end: new Date(y, 11, 31, 23, 59, 59, 999)
+  };
+};
+
+// Helper function to get date range (relative periods when no year is set)
 const getDateRange = (period) => {
   const end = new Date();
   const start = new Date();
-  
-  switch(period) {
+
+  switch (period) {
     case 'daily':
       start.setDate(end.getDate() - 1);
       break;
@@ -24,9 +37,9 @@ const getDateRange = (period) => {
       start.setFullYear(end.getFullYear() - 1);
       break;
     default:
-      start.setMonth(end.getMonth() - 1); // Default to monthly
+      start.setMonth(end.getMonth() - 1);
   }
-  
+
   return { start, end };
 };
 
@@ -35,8 +48,23 @@ const getDateRange = (period) => {
 // @access  Private (Sub-City Admin)
 exports.getAnalytics = async (req, res, next) => {
   try {
-    const { period = 'monthly', woreda } = req.query;
-    const dateRange = getDateRange(period);
+    const { period = 'monthly', woreda, year } = req.query;
+
+    let dateRange;
+    let filterYear = null;
+
+    if (year) {
+      dateRange = getYearDateRange(year);
+      if (!dateRange) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid year. Allowed years: ${REPORT_FILTER_YEARS.join(', ')}`
+        });
+      }
+      filterYear = Number(year);
+    } else {
+      dateRange = getDateRange(period);
+    }
     
     // Build match conditions
     const matchConditions = {
@@ -207,7 +235,7 @@ exports.getAnalytics = async (req, res, next) => {
         averageResponseTime: 0, // Would track in production
         storageUsage: 0 // Would calculate from uploads
       },
-      period,
+      period: filterYear ? 'yearly' : period,
       date: new Date()
     });
     
@@ -231,6 +259,7 @@ exports.getAnalytics = async (req, res, next) => {
         woredaPerformance,
         departmentPerformance,
         recentReports,
+        filterYear,
         systemHealth: {
           ...systemHealth,
           resolutionRate: Math.round(resolutionRate * 100) / 100

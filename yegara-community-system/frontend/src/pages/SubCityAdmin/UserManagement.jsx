@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { usersAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import {
@@ -17,6 +17,8 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [woredaFilter, setWoredaFilter] = useState('all');
+  const [woredaOptions, setWoredaOptions] = useState(['all']);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -34,13 +36,27 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const params = roleFilter !== 'all' ? { role: roleFilter } : undefined;
-      const response = await usersAPI.getAll(params);
+      const params = {};
+      if (roleFilter !== 'all') params.role = roleFilter;
+      if (woredaFilter !== 'all') params.woreda = woredaFilter;
+      const response = await usersAPI.getAll(Object.keys(params).length ? params : undefined);
       setUsers(response.data.data || []);
     } catch (error) {
       toast.error('Unable to load users');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWoredaOptions = async () => {
+    try {
+      const response = await usersAPI.getAll();
+      const woredas = [...new Set((response.data.data || []).map((user) => user.woreda).filter(Boolean))].sort(
+        (a, b) => a.localeCompare(b)
+      );
+      setWoredaOptions(['all', ...woredas]);
+    } catch {
+      // Keep defaults if woreda list cannot be loaded.
     }
   };
 
@@ -50,6 +66,7 @@ const UserManagement = () => {
       await usersAPI.delete(id);
       toast.success('User deleted successfully');
       fetchUsers();
+      fetchWoredaOptions();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Unable to delete user');
     }
@@ -139,6 +156,7 @@ const UserManagement = () => {
       toast.success('User updated successfully');
       handleCloseEdit();
       fetchUsers();
+      fetchWoredaOptions();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Unable to update user');
     }
@@ -153,20 +171,25 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
+    fetchWoredaOptions();
+  }, []);
+
+  useEffect(() => {
     fetchUsers();
-  }, [roleFilter]);
+  }, [roleFilter, woredaFilter]);
 
-  const filteredUsers = users.filter((user) => {
-    if (!searchTerm.trim()) return true;
+  const filteredUsers = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase();
+    if (!needle) return users;
 
-    const needle = searchTerm.toLowerCase();
-    return (
-      user.fullName?.toLowerCase().includes(needle) ||
-      user.email?.toLowerCase().includes(needle) ||
-      user.woreda?.toLowerCase().includes(needle) ||
-      user.department?.toLowerCase().includes(needle)
+    return users.filter(
+      (user) =>
+        user.fullName?.toLowerCase().includes(needle) ||
+        user.email?.toLowerCase().includes(needle) ||
+        user.woreda?.toLowerCase().includes(needle) ||
+        user.department?.toLowerCase().includes(needle)
     );
-  });
+  }, [users, searchTerm]);
 
   return (
     <PortalPage>
@@ -177,7 +200,7 @@ const UserManagement = () => {
       />
 
       <PortalFormPanel title="Find users">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <PortalField label="Filter by role">
             <select
               className="input mt-0"
@@ -189,6 +212,19 @@ const UserManagement = () => {
               <option value="woreda_admin">Woreda Admin</option>
               <option value="officer">Officer</option>
               <option value="resident">Resident</option>
+            </select>
+          </PortalField>
+          <PortalField label="Filter by woreda">
+            <select
+              className="input mt-0"
+              value={woredaFilter}
+              onChange={(e) => setWoredaFilter(e.target.value)}
+            >
+              {woredaOptions.map((woreda) => (
+                <option key={woreda} value={woreda}>
+                  {woreda === 'all' ? 'All woredas' : woreda}
+                </option>
+              ))}
             </select>
           </PortalField>
           <PortalField label="Search">

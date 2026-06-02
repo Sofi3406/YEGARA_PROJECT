@@ -13,9 +13,14 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-import { format, eachDayOfInterval, subDays } from 'date-fns';
 import { reportsAPI } from '../../services/api';
 import { getLabelColor, getPaletteColor, TREND_LINE_COLOR } from '../../utils/chartColors';
+import {
+  defaultReportYear,
+  filterReportsByYear,
+  buildMonthlyReportTrend,
+  REPORT_FILTER_YEARS
+} from '../../utils/reportYearFilter';
 import {
   PortalPage,
   PortalHero,
@@ -23,6 +28,7 @@ import {
   PortalStatGrid,
   PortalPanel,
   PortalEmpty,
+  PortalField,
   statusToClass
 } from '../../components/portal/PortalPageShell';
 
@@ -42,6 +48,7 @@ const ColoredDot = ({ cx, cy, index }) => {
 
 const Analytics = () => {
   const [reports, setReports] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(defaultReportYear);
   const [loading, setLoading] = useState(true);
 
   const fetchReports = async () => {
@@ -60,21 +67,26 @@ const Analytics = () => {
     fetchReports();
   }, []);
 
+  const yearReports = useMemo(
+    () => filterReportsByYear(reports, selectedYear),
+    [reports, selectedYear]
+  );
+
   const stats = useMemo(() => {
-    const pending = reports.filter((r) => r.status === 'Pending').length;
-    const inProgress = reports.filter((r) => r.status === 'In Progress').length;
-    const resolved = reports.filter((r) => r.status === 'Resolved').length;
-    const rejected = reports.filter((r) => r.status === 'Rejected').length;
-    return { total: reports.length, pending, inProgress, resolved, rejected };
-  }, [reports]);
+    const pending = yearReports.filter((r) => r.status === 'Pending').length;
+    const inProgress = yearReports.filter((r) => r.status === 'In Progress').length;
+    const resolved = yearReports.filter((r) => r.status === 'Resolved').length;
+    const rejected = yearReports.filter((r) => r.status === 'Rejected').length;
+    return { total: yearReports.length, pending, inProgress, resolved, rejected };
+  }, [yearReports]);
 
   const categoryBreakdown = useMemo(() => {
-    return reports.reduce((acc, report) => {
+    return yearReports.reduce((acc, report) => {
       const key = report.category || 'Other';
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
-  }, [reports]);
+  }, [yearReports]);
 
   const statusData = useMemo(
     () => [
@@ -91,26 +103,13 @@ const Analytics = () => {
     [categoryBreakdown]
   );
 
-  const trendData = useMemo(() => {
-    const end = new Date();
-    const start = subDays(end, 29);
-    const days = eachDayOfInterval({ start, end });
-    const counts = new Map();
-
-    days.forEach((day) => counts.set(format(day, 'MMM dd'), 0));
-
-    reports.forEach((report) => {
-      const created = report.createdAt ? new Date(report.createdAt) : null;
-      if (!created || created < start || created > end) return;
-      const key = format(created, 'MMM dd');
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-
-    return Array.from(counts.entries()).map(([date, value]) => ({ date, value }));
-  }, [reports]);
+  const trendData = useMemo(
+    () => buildMonthlyReportTrend(yearReports, selectedYear),
+    [yearReports, selectedYear]
+  );
 
   const resolutionStats = useMemo(() => {
-    const resolvedReports = reports.filter((r) => r.status === 'Resolved');
+    const resolvedReports = yearReports.filter((r) => r.status === 'Resolved');
     const totalResolvedDays = resolvedReports.reduce((sum, report) => {
       if (!report.resolvedAt || !report.createdAt) return sum;
       const resolvedAt = new Date(report.resolvedAt).getTime();
@@ -120,12 +119,12 @@ const Analytics = () => {
     }, 0);
 
     return {
-      resolutionRate: reports.length ? (resolvedReports.length / reports.length) * 100 : 0,
+      resolutionRate: yearReports.length ? (resolvedReports.length / yearReports.length) * 100 : 0,
       avgResolutionDays: resolvedReports.length ? totalResolvedDays / resolvedReports.length : 0
     };
-  }, [reports]);
+  }, [yearReports]);
 
-  const recentReports = useMemo(() => reports.slice(0, 8), [reports]);
+  const recentReports = useMemo(() => yearReports.slice(0, 8), [yearReports]);
   const total = Math.max(stats.total, 1);
 
   if (loading) {
@@ -146,8 +145,26 @@ const Analytics = () => {
       <PortalHero
         eyebrow="Insights"
         title="Analytics"
-        description="Track report volume, resolution performance, and category trends across your woreda."
+        description={`Track report volume, resolution performance, and category trends for ${selectedYear}.`}
       />
+
+      <div className="officer-form-panel">
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <PortalField label="Report year">
+            <select
+              className="input mt-0"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              {REPORT_FILTER_YEARS.map((year) => (
+                <option key={year} value={String(year)}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </PortalField>
+        </div>
+      </div>
 
       <PortalStatGrid
         columns={4}
@@ -229,7 +246,7 @@ const Analytics = () => {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="officer-chart-panel lg:col-span-2">
-          <h2 className="officer-chart-panel__title">Reports over time (last 30 days)</h2>
+          <h2 className="officer-chart-panel__title">Reports over time ({selectedYear})</h2>
           {trendData.every((item) => item.value === 0) ? (
             <p className="mt-4 text-sm text-slate-500">No recent reports.</p>
           ) : (
@@ -244,7 +261,7 @@ const Analytics = () => {
                   <Line
                     type="monotone"
                     dataKey="value"
-                    name="Daily reports"
+                    name="Monthly reports"
                     stroke={TREND_LINE_COLOR}
                     strokeWidth={2.5}
                     dot={<ColoredDot />}

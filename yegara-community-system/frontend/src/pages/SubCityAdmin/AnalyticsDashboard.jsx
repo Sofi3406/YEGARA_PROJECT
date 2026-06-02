@@ -28,13 +28,14 @@ import {
   PortalField,
   statusToClass
 } from '../../components/portal/PortalPageShell';
+import { defaultReportYear, REPORT_FILTER_YEARS } from '../../utils/reportYearFilter';
 
 const REPORTS_SERIES_COLOR = '#d97706';
 const RESOLVED_SERIES_COLOR = '#16a34a';
 
 const AnalyticsDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
-  const [timeFilter, setTimeFilter] = useState('monthly');
+  const [selectedYear, setSelectedYear] = useState(defaultReportYear);
   const [selectedWoreda, setSelectedWoreda] = useState('all');
   const [loading, setLoading] = useState(true);
   const [realtimeData, setRealtimeData] = useState(null);
@@ -43,7 +44,7 @@ const AnalyticsDashboard = () => {
     setLoading(true);
     try {
       const response = await analyticsAPI.getDashboard({
-        period: timeFilter,
+        year: selectedYear,
         woreda: selectedWoreda
       });
       setAnalytics(response.data.data);
@@ -65,7 +66,7 @@ const AnalyticsDashboard = () => {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [timeFilter, selectedWoreda]);
+  }, [selectedYear, selectedWoreda]);
 
   useEffect(() => {
     fetchRealtimeData();
@@ -100,7 +101,7 @@ const AnalyticsDashboard = () => {
       <PortalHero
         eyebrow="Sub city insights"
         title="Analytics dashboard"
-        description="Track community engagement, resolution performance, and woreda-level activity."
+        description={`Track community engagement, resolution performance, and woreda-level activity for ${selectedYear}.`}
         actions={
           <div className="flex flex-wrap gap-2">
             <PortalOutlineButton type="button" onClick={fetchAnalytics}>
@@ -112,16 +113,17 @@ const AnalyticsDashboard = () => {
 
       <div className="officer-form-panel">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <PortalField label="Time period">
+          <PortalField label="Report year">
             <select
               className="input mt-0"
-              value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value)}
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
             >
-              <option value="daily">Today</option>
-              <option value="weekly">This week</option>
-              <option value="monthly">This month</option>
-              <option value="yearly">This year</option>
+              {REPORT_FILTER_YEARS.map((year) => (
+                <option key={year} value={String(year)}>
+                  {year}
+                </option>
+              ))}
             </select>
           </PortalField>
           <PortalField label="Woreda">
