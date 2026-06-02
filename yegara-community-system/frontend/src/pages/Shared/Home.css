@@ -287,7 +287,7 @@
 }
 
 .landing-carousel__progress-bar.is-animating {
-  animation: landing-carousel-progress 10s linear forwards;
+  animation: landing-carousel-progress 6s linear forwards;
 }
 
 .landing-carousel__timer {
@@ -774,13 +774,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .landing-showcase__glow,
-  .landing-slide.is-active .landing-slide__media,
-  .landing-carousel__progress-bar.is-animating,
   .landing-slide__badge-dot {
     animation: none;
-  }
-
-  .landing-carousel__slider {
-    transition: none;
   }
 }

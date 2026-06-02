@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-const AUTO_INTERVAL_MS = 10000;
+const AUTO_INTERVAL_MS = 6000;
 const DESC_COLLAPSE_CHARS = 280;
 
 const ChevronIcon = ({ direction }) => (
@@ -270,7 +270,7 @@ const LandingImageCarousel = ({
             ))}
           </div>
           <p className="landing-carousel__timer" aria-hidden="true">
-            Next in 10s
+            Next in 6s
           </p>
           <div className="landing-carousel__progress" aria-hidden="true">
             <div
