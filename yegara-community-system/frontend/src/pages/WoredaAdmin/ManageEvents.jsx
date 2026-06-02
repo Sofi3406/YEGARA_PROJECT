@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { eventsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -10,6 +10,13 @@ import {
   getSpotsLeft,
   isEventOwner
 } from '../../utils/eventRegistrations';
+import EventWoredaFilter from '../../components/events/EventWoredaFilter';
+import {
+  defaultEventWoredaFilterForUser,
+  filterEventsByWoreda,
+  formatEventWoredaLabel,
+  EVENT_WOREA_FILTER_ALL
+} from '../../utils/woredas';
 import {
   PortalPage,
   PortalHero,
@@ -23,7 +30,8 @@ import {
 
 const ManageEvents = () => {
   const { user } = useAuth();
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+  const [woredaFilter, setWoredaFilter] = useState(EVENT_WOREA_FILTER_ALL);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -41,7 +49,7 @@ const ManageEvents = () => {
     setLoading(true);
     try {
       const response = await eventsAPI.getByWoreda(user?.woreda);
-      setEvents(response.data.data || []);
+      setAllEvents(response.data.data || []);
     } catch (error) {
       toast.error('Unable to load events');
     } finally {
@@ -152,8 +160,19 @@ const ManageEvents = () => {
   };
 
   useEffect(() => {
+    setWoredaFilter(defaultEventWoredaFilterForUser(user));
+  }, [user?.woreda]);
+
+  useEffect(() => {
     fetchEvents();
   }, [user?.woreda]);
+
+  const events = useMemo(
+    () => filterEventsByWoreda(allEvents, woredaFilter),
+    [allEvents, woredaFilter]
+  );
+
+  const woredaFilterOptions = user?.woreda ? [user.woreda] : undefined;
 
   const formatEventTime = (value) => {
     const date = new Date(value);
@@ -240,10 +259,27 @@ const ManageEvents = () => {
         </div>
       </PortalFormPanel>
 
+      <div className="officer-form-panel">
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <EventWoredaFilter
+            value={woredaFilter}
+            onChange={(e) => setWoredaFilter(e.target.value)}
+            disabled={loading}
+            woredaOptions={woredaFilterOptions}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <PortalLoading />
       ) : events.length === 0 ? (
-        <PortalEmpty message="No events created yet." />
+        <PortalEmpty
+          message={
+            allEvents.length > 0
+              ? 'No events match the selected woreda filter.'
+              : 'No events created yet.'
+          }
+        />
       ) : (
         <>
           {selectedEvent && (
@@ -300,7 +336,7 @@ const ManageEvents = () => {
                           </span>
                         )}
                         <span className="officer-chip officer-chip--muted">
-                          {event.woreda || user?.woreda || 'Woreda'}
+                          {formatEventWoredaLabel(event.woreda || user?.woreda)}
                         </span>
                       </div>
                     </div>

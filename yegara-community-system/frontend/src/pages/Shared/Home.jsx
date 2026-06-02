@@ -3,8 +3,15 @@ import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../../components/Layout/Navbar';
 import Footer from '../../components/Layout/Footer';
 import LandingImageCarousel from '../../components/landing/LandingImageCarousel';
+import EventWoredaFilter from '../../components/events/EventWoredaFilter';
 import { publicAPI } from '../../services/api';
 import { getMediaUrl } from '../../utils/media';
+import {
+  buildEventWoredaQueryParams,
+  filterEventsByWoreda,
+  formatEventWoredaLabel,
+  EVENT_WOREA_FILTER_ALL
+} from '../../utils/woredas';
 import './Home.css';
 
 const Home = () => {
@@ -16,7 +23,8 @@ const Home = () => {
     updatedAt: null
   });
   const [loadingSnapshot, setLoadingSnapshot] = useState(true);
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+  const [eventWoredaFilter, setEventWoredaFilter] = useState(EVENT_WOREA_FILTER_ALL);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingCommunity, setLoadingCommunity] = useState(true);
   const [showAllEvents, setShowAllEvents] = useState(false);
@@ -125,17 +133,17 @@ const Home = () => {
       try {
 
         const [evRes, anRes] = await Promise.all([
-          publicAPI.getEvents({ limit: 50 }),
+          publicAPI.getEvents(buildEventWoredaQueryParams(eventWoredaFilter, { limit: 50 })),
           publicAPI.getAnnouncements({ limit: 50 })
         ]);
 
         if (!isMounted) return;
 
-        setEvents(evRes.data?.data || []);
+        setAllEvents(evRes.data?.data || []);
         setAnnouncements(anRes.data?.data || []);
       } catch (err) {
         if (isMounted) {
-          setEvents([]);
+          setAllEvents([]);
           setAnnouncements([]);
         }
       } finally {
@@ -148,7 +156,12 @@ const Home = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [eventWoredaFilter]);
+
+  const events = useMemo(
+    () => filterEventsByWoreda(allEvents, eventWoredaFilter),
+    [allEvents, eventWoredaFilter]
+  );
 
   const stats = useMemo(
     () => [
@@ -231,6 +244,14 @@ const Home = () => {
                 )}
               </header>
 
+              <div className="mb-4 max-w-xs">
+                <EventWoredaFilter
+                  value={eventWoredaFilter}
+                  onChange={(e) => setEventWoredaFilter(e.target.value)}
+                  disabled={loadingCommunity}
+                />
+              </div>
+
               {loadingCommunity ? (
                 <div className="landing-empty animate-pulse">Loading events…</div>
               ) : (
@@ -244,7 +265,7 @@ const Home = () => {
                   getTitle={(ev) => ev.title}
                   getDescription={(ev) => ev.description?.trim() || ''}
                   getSubtitle={(ev) => {
-                    const parts = [ev.location, ev.woreda && ev.woreda !== 'All Woredas' ? ev.woreda : null].filter(Boolean);
+                    const parts = [ev.location, ev.woreda ? formatEventWoredaLabel(ev.woreda) : null].filter(Boolean);
                     return parts.length ? parts.join(' · ') : null;
                   }}
                   getDateLabel={formatEventDate}

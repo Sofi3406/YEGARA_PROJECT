@@ -4,6 +4,12 @@ import { useAuth } from '../../context/AuthContext';
 import { announcementsAPI, eventsAPI, reportsAPI, resourcesAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../../utils/media';
+import EventWoredaFilter from '../../components/events/EventWoredaFilter';
+import {
+  buildEventWoredaQueryParams,
+  defaultEventWoredaFilterForUser,
+  formatEventWoredaLabel
+} from '../../utils/woredas';
 
 const statusStyles = {
   Pending: 'bg-yellow-100 text-yellow-800',
@@ -16,6 +22,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [events, setEvents] = useState([]);
+  const [eventWoredaFilter, setEventWoredaFilter] = useState('all');
   const [publicUpdates, setPublicUpdates] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [resources, setResources] = useState([]);
@@ -29,18 +36,21 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const eventParams = {
+        const eventParams = buildEventWoredaQueryParams(eventWoredaFilter, {
           status: 'Upcoming',
-          'date[gte]': new Date().toISOString()
-        };
+          'date[gte]': new Date().toISOString(),
+          sort: '-createdAt',
+          limit: 20
+        });
 
-        if (user.woreda) {
-          eventParams.woreda = user.woreda;
-        }
+        const eventsRequest =
+          eventWoredaFilter === 'all' && user.woreda
+            ? eventsAPI.getByWoreda(user.woreda)
+            : eventsAPI.getAll(eventParams);
 
         const [reportsResponse, eventsResponse] = await Promise.all([
           reportsAPI.getMyReports(),
-          eventsAPI.getAll(eventParams)
+          eventsRequest
         ]);
 
         const [publicUpdatesResponse, announcementsResponse, resourcesResponse] = await Promise.all([
@@ -77,7 +87,11 @@ const Dashboard = () => {
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [user, eventWoredaFilter]);
+
+  useEffect(() => {
+    setEventWoredaFilter(defaultEventWoredaFilterForUser(user));
+  }, [user?.woreda]);
 
   const stats = useMemo(() => {
     const pendingCount = reports.filter((report) => report.status === 'Pending').length;
@@ -236,6 +250,55 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-amber-50">
+        <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">Community calendar</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">Upcoming events</h2>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[200px]">
+              <EventWoredaFilter
+                value={eventWoredaFilter}
+                onChange={(e) => setEventWoredaFilter(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <Link to="/events" className="text-sm font-medium text-amber-700 hover:text-amber-800">
+              View all
+            </Link>
+          </div>
+        </div>
+        {loading ? (
+          <div className="flex h-28 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+          </div>
+        ) : events.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+            No events match the selected woreda filter.
+          </div>
+        ) : (
+          <div className="mt-5 space-y-4">
+            {events.slice(0, 4).map((event) => (
+              <div key={event._id} className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-amber-50/50 p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">{event.title}</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(event.date).toLocaleString()} · {formatEventWoredaLabel(event.woreda)}
+                    </p>
+                  </div>
+                  <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                    {formatEventWoredaLabel(event.woreda)}
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{event.description || 'No description provided.'}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -4,24 +4,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/Layout/Navbar';
+import { WOREDA_LIST } from '../../utils/woredas';
 
 const Register = () => {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
 
-  const woredaOptions = [
-    'Woreda 01',
-    'Woreda 02',
-    'Woreda 03',
-    'Woreda 04',
-    'Woreda 05',
-    'Woreda 06',
-    'Woreda 07',
-    'Woreda 08',
-    'Woreda 09',
-    'Woreda 10',
-    'Other'
-  ];
+  const woredaOptions = [...WOREDA_LIST, 'Other'];
 
   const {
     register,

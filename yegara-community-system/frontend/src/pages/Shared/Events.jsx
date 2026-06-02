@@ -12,9 +12,16 @@ import {
   isUserRegisteredForEvent
 } from '../../utils/eventRegistrations';
 import EventRegistrationTicket from '../../components/events/EventRegistrationTicket';
+import EventWoredaFilter from '../../components/events/EventWoredaFilter';
+import {
+  buildEventWoredaQueryParams,
+  defaultEventWoredaFilterForUser,
+  formatEventWoredaLabel
+} from '../../utils/woredas';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
+  const [woredaFilter, setWoredaFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [guestForm, setGuestForm] = useState({ fullName: '', email: '', phone: '' });
@@ -24,16 +31,22 @@ const Events = () => {
 
   const usesRegisterableFeed = user?.role === 'officer' || user?.role === 'woreda_admin';
 
-  const loadEvents = async () => {
+  const loadEvents = async (filterValue = woredaFilter) => {
+    const queryParams = buildEventWoredaQueryParams(filterValue, { limit: 50, sort: '-createdAt' });
+
     if (!user) {
-      const response = await publicAPI.getEvents({ limit: 50 });
+      const response = await publicAPI.getEvents(queryParams);
       return response.data.data || [];
     }
     if (usesRegisterableFeed) {
-      const response = await eventsAPI.getRegisterable();
+      const response = await eventsAPI.getRegisterable(queryParams);
       return response.data.data || [];
     }
-    const response = await eventsAPI.getAll();
+    if (user.role === 'resident' && user.woreda && filterValue === 'all') {
+      const response = await eventsAPI.getByWoreda(user.woreda);
+      return response.data.data || [];
+    }
+    const response = await eventsAPI.getAll(queryParams);
     return response.data.data || [];
   };
 
@@ -96,8 +109,12 @@ const Events = () => {
   };
 
   useEffect(() => {
+    setWoredaFilter(defaultEventWoredaFilterForUser(user));
+  }, [user?.role, user?.woreda]);
+
+  useEffect(() => {
     fetchEvents();
-  }, [user?.role]);
+  }, [user?.role, woredaFilter]);
 
   useEffect(() => {
     if (!selected || !isUserRegisteredForEvent(selected, user) || !selected.myEntranceCode) {
@@ -216,6 +233,14 @@ const Events = () => {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm sm:max-w-xs">
+        <EventWoredaFilter
+          value={woredaFilter}
+          onChange={(e) => setWoredaFilter(e.target.value)}
+          disabled={loading}
+        />
+      </div>
+
       {events.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-amber-200 bg-white p-8 text-center shadow-sm">
           <p className="text-lg font-semibold text-slate-900">No upcoming events yet</p>
@@ -260,7 +285,7 @@ const Events = () => {
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                      {event.woreda || 'All Woredas'}
+                      {formatEventWoredaLabel(event.woreda)}
                     </span>
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getRegistrationStatus(event).className}`}>
                       {getRegistrationStatus(event).label}
@@ -309,7 +334,7 @@ const Events = () => {
 
                 <div className="flex flex-wrap gap-2">
                   <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                    Scope: {selected.woreda || 'All Woredas'}
+                    Scope: {formatEventWoredaLabel(selected.woreda)}
                   </span>
                   <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
                     Organizer: {formatOrganizer(selected.organizer)}

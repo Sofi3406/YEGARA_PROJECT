@@ -10,6 +10,12 @@ import {
   getSpotsLeft,
   isEventOwner
 } from '../../utils/eventRegistrations';
+import EventWoredaFilter from '../../components/events/EventWoredaFilter';
+import {
+  buildEventWoredaQueryParams,
+  formatEventWoredaLabel,
+  EVENT_WOREA_FILTER_ALL
+} from '../../utils/woredas';
 import {
   PortalPage,
   PortalHero,
@@ -24,6 +30,7 @@ import {
 const ManageEvents = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
+  const [woredaFilter, setWoredaFilter] = useState(EVENT_WOREA_FILTER_ALL);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -40,7 +47,9 @@ const ManageEvents = () => {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const response = await eventsAPI.getAll({ sort: '-createdAt', limit: 100 });
+      const response = await eventsAPI.getAll(
+        buildEventWoredaQueryParams(woredaFilter, { sort: '-createdAt', limit: 100 })
+      );
       setEvents(response.data.data || []);
     } catch (error) {
       toast.error('Unable to load events');
@@ -153,7 +162,7 @@ const ManageEvents = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [woredaFilter]);
 
   const formatOrganizer = (organizer) => {
     if (!organizer) return 'Admin';
@@ -259,6 +268,16 @@ const ManageEvents = () => {
         </div>
       </PortalFormPanel>
 
+      <div className="officer-form-panel">
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <EventWoredaFilter
+            value={woredaFilter}
+            onChange={(e) => setWoredaFilter(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <PortalLoading />
       ) : events.length === 0 ? (
@@ -319,7 +338,7 @@ const ManageEvents = () => {
                           </span>
                         )}
                         <span className="officer-chip officer-chip--muted">
-                          {event.woreda || 'All Woredas'}
+                          {formatEventWoredaLabel(event.woreda)}
                         </span>
                         <span className="officer-chip officer-chip--muted">
                           {formatOrganizer(event.organizer)}

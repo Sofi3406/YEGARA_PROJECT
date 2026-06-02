@@ -13,6 +13,24 @@ const {
 } = require('../utils/eventTickets');
 
 const toWebPath = (filePath = '') => filePath.replace(/\\/g, '/');
+const SUBCITY_EVENT_WOREDA = 'All Woredas';
+
+const applyEventWoredaFilter = (filter, woredaQuery) => {
+  if (!woredaQuery || woredaQuery === 'all') {
+    return filter;
+  }
+
+  const next = { ...filter };
+
+  if (woredaQuery === SUBCITY_EVENT_WOREDA || woredaQuery === 'subcity') {
+    next.woreda = SUBCITY_EVENT_WOREDA;
+    return next;
+  }
+
+  const woredaRegex = buildWoredaRegex(woredaQuery);
+  next.woreda = woredaRegex ? { $regex: woredaRegex } : woredaQuery;
+  return next;
+};
 const countEventRegistrations = (event) => {
   if (!event) return 0;
 
@@ -102,15 +120,19 @@ exports.getEvents = async (req, res, next) => {
   try {
     let query;
     const reqQuery = { ...req.query };
+    const woredaQuery = reqQuery.woreda;
 
     // Fields to exclude
-    const removeFields = ['select', 'sort', 'page', 'limit'];
+    const removeFields = ['select', 'sort', 'page', 'limit', 'woreda'];
     removeFields.forEach(param => delete reqQuery[param]);
 
     let queryStr = JSON.stringify(reqQuery);
     queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
 
-    query = Event.find(JSON.parse(queryStr)).populate('organizer', 'fullName email role');
+    let mongoFilter = Object.keys(reqQuery).length ? JSON.parse(queryStr) : {};
+    mongoFilter = applyEventWoredaFilter(mongoFilter, woredaQuery);
+
+    query = Event.find(mongoFilter).populate('organizer', 'fullName email role');
 
     // Select fields
     if (req.query.select) {
@@ -131,7 +153,7 @@ exports.getEvents = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 25;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Event.countDocuments(JSON.parse(queryStr));
+    const total = await Event.countDocuments(mongoFilter);
 
     query = query.skip(startIndex).limit(limit);
 
@@ -175,13 +197,28 @@ exports.getRegisterableEvents = async (req, res, next) => {
 
     const woredaRegex = buildWoredaRegex(req.user.woreda);
     const woredaFilter = woredaRegex
-      ? { $or: [{ woreda: { $regex: woredaRegex } }, { woreda: 'All Woredas' }] }
-      : { $or: [{ woreda: req.user.woreda }, { woreda: 'All Woredas' }] };
+      ? { $or: [{ woreda: { $regex: woredaRegex } }, { woreda: SUBCITY_EVENT_WOREDA }] }
+      : { $or: [{ woreda: req.user.woreda }, { woreda: SUBCITY_EVENT_WOREDA }] };
 
-    const events = await Event.find({
+    let registerableFilter = {
       ...woredaFilter,
       status: { $nin: ['Cancelled', 'Completed'] }
-    })
+    };
+
+    if (req.query.woreda && req.query.woreda !== 'all') {
+      registerableFilter = applyEventWoredaFilter(
+        { status: { $nin: ['Cancelled', 'Completed'] } },
+        req.query.woreda
+      );
+
+      if (req.query.woreda !== SUBCITY_EVENT_WOREDA && req.query.woreda !== 'subcity') {
+        registerableFilter = {
+          $and: [woredaFilter, registerableFilter]
+        };
+      }
+    }
+
+    const events = await Event.find(registerableFilter)
       .populate('organizer', 'fullName email role')
       .sort('-createdAt');
 
@@ -227,7 +264,8 @@ exports.getPublicEvents = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
 
-    const baseFilter = { status: { $ne: 'Draft' }, isPublic: { $ne: false } };
+    let baseFilter = { status: { $ne: 'Draft' }, isPublic: { $ne: false } };
+    baseFilter = applyEventWoredaFilter(baseFilter, req.query.woreda);
 
     const total = await Event.countDocuments(baseFilter);
 
@@ -449,8 +487,8 @@ exports.getEventsByWoreda = async (req, res, next) => {
   try {
     const woredaRegex = buildWoredaRegex(req.params.woreda);
     const woredaFilter = woredaRegex
-      ? { $or: [{ woreda: { $regex: woredaRegex } }, { woreda: 'All Woredas' }] }
-      : { $or: [{ woreda: req.params.woreda }, { woreda: 'All Woredas' }] };
+      ? { $or: [{ woreda: { $regex: woredaRegex } }, { woreda: SUBCITY_EVENT_WOREDA }] }
+      : { $or: [{ woreda: req.params.woreda }, { woreda: SUBCITY_EVENT_WOREDA }] };
 
     const events = await Event.find(woredaFilter)
       .populate('organizer', 'fullName email role')

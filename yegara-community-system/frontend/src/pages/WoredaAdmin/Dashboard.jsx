@@ -1,4 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import EventWoredaFilter from '../../components/events/EventWoredaFilter';
+import {
+  defaultEventWoredaFilterForUser,
+  filterEventsByWoreda,
+  formatEventWoredaLabel,
+  EVENT_WOREA_FILTER_ALL
+} from '../../utils/woredas';
 import { toast } from 'react-hot-toast';
 import { announcementsAPI, eventsAPI, meetingsAPI, reportsAPI, usersAPI } from '../../services/api';
 import DashboardAnnouncementsShowcase from '../../components/portal/DashboardAnnouncementsShowcase';
@@ -26,7 +33,8 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState([]);
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+  const [eventWoredaFilter, setEventWoredaFilter] = useState(EVENT_WOREA_FILTER_ALL);
   const [myEvents, setMyEvents] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [residentCount, setResidentCount] = useState(0);
@@ -57,7 +65,7 @@ const Dashboard = () => {
         setReports(reportsResponse.data?.data || []);
         setResidentCount(residentsResponse.data?.count || 0);
         setOfficerCount(officersResponse.data?.count || 0);
-        setEvents(eventsResponse.data?.data || []);
+        setAllEvents(eventsResponse.data?.data || []);
         setMyEvents(myEventsResponse.data?.data || []);
         setMeetings(meetingsResponse.data?.data || []);
         setAnnouncements(announcementsResponse.data?.data || []);
@@ -76,6 +84,15 @@ const Dashboard = () => {
     () => filterReportsByYear(reports, selectedYear),
     [reports, selectedYear]
   );
+
+  const events = useMemo(
+    () => filterEventsByWoreda(allEvents, eventWoredaFilter),
+    [allEvents, eventWoredaFilter]
+  );
+
+  useEffect(() => {
+    setEventWoredaFilter(defaultEventWoredaFilterForUser(user));
+  }, [user?.woreda]);
 
   const reportStats = useMemo(() => {
     const pending = yearReports.filter((r) => r.status === 'Pending').length;
@@ -155,6 +172,42 @@ const Dashboard = () => {
         loading={loading}
         manageLink="/woreda-admin/announcements"
       />
+
+      <div className="officer-form-panel">
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <EventWoredaFilter
+            label="Filter events by woreda"
+            value={eventWoredaFilter}
+            onChange={(e) => setEventWoredaFilter(e.target.value)}
+            disabled={loading}
+            woredaOptions={user?.woreda ? [user.woreda] : undefined}
+          />
+        </div>
+      </div>
+
+      <PortalPanel title={`Upcoming events (${events.length})`} linkTo="/woreda-admin/community-events" linkLabel="View all events">
+        {loading ? (
+          <PortalLoading />
+        ) : events.length === 0 ? (
+          <PortalEmpty message="No events match the selected woreda filter." />
+        ) : (
+          <ul className="space-y-3">
+            {events.slice(0, 5).map((event) => (
+              <li key={event._id} className="officer-list-item">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-900">{event.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(event.date).toLocaleString()} · {formatEventWoredaLabel(event.woreda)}
+                    </p>
+                  </div>
+                  <span className="officer-chip">{event.status || 'Upcoming'}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PortalPanel>
 
       <PortalPanel title="My events & registrations" linkTo="/woreda-admin/events" linkLabel="Manage events">
         {loading ? (
