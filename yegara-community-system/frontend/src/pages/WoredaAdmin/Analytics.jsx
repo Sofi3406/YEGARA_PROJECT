@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { format, eachDayOfInterval, subDays } from 'date-fns';
 import { reportsAPI } from '../../services/api';
-import { getPaletteColor, TREND_LINE_COLOR } from '../../utils/chartColors';
+import { getLabelColor, getPaletteColor, TREND_LINE_COLOR } from '../../utils/chartColors';
 import {
   PortalPage,
   PortalHero,
