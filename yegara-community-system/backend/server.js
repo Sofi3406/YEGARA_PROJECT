@@ -128,11 +128,8 @@ app.use(errorHandler);
 
 // Socket.io for real-time notifications
 io.on('connection', (socket) => {
-  console.log('New client connected');
-  
   socket.on('join', (userId) => {
     socket.join(`user-${userId}`);
-    console.log(`User ${userId} joined`);
   });
   
   socket.on('report-updated', ({ reportId, userIds }) => {
@@ -143,10 +140,6 @@ io.on('connection', (socket) => {
         reportId
       });
     });
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
   });
 });
 
