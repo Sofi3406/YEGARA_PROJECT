@@ -84,15 +84,15 @@ const ResidentChatbotWidget = () => {
     <>
       {open && (
         <div className="fixed bottom-20 right-6 z-50 w-[92vw] max-w-sm rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
-          <div className="flex items-center justify-between bg-primary-600 text-white px-4 py-3">
+          <div className="flex items-center justify-between bg-gradient-to-r from-amber-600 to-orange-700 text-white px-4 py-3">
             <div>
               <p className="text-sm font-semibold">Ask Chatbot</p>
-              <p className="text-[11px] text-primary-100">{isResident ? 'Resident assistant' : 'Public assistant'}</p>
+              <p className="text-[11px] text-amber-100">{isResident ? 'Resident assistant' : 'Public assistant'}</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-md p-1 hover:bg-primary-500"
+              className="rounded-md p-1 hover:bg-amber-500/50"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -104,7 +104,7 @@ const ResidentChatbotWidget = () => {
                 key={msg.id}
                 className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap ${
                   msg.role === 'user'
-                    ? 'ml-auto bg-primary-600 text-white'
+                    ? 'ml-auto bg-gradient-to-r from-amber-600 to-orange-700 text-white'
                     : 'bg-white border border-gray-200 text-gray-800'
                 }`}
               >
@@ -141,7 +141,7 @@ const ResidentChatbotWidget = () => {
               <button
                 type="button"
                 onClick={() => navigate('/register')}
-                className="w-full rounded-lg border border-primary-200 text-primary-700 text-sm font-medium py-2 hover:bg-primary-50"
+                className="w-full rounded-lg border border-amber-200 text-amber-800 text-sm font-medium py-2 hover:bg-amber-50"
               >
                 Create Resident Account
               </button>
@@ -158,13 +158,13 @@ const ResidentChatbotWidget = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your question..."
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 disabled={loading}
               />
               <button
                 type="submit"
                 disabled={!canSend}
-                className="inline-flex items-center justify-center rounded-lg bg-primary-600 text-white p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-amber-600 to-orange-700 text-white p-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PaperAirplaneIcon className="h-4 w-4" />
               </button>
@@ -179,7 +179,7 @@ const ResidentChatbotWidget = () => {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary-600 text-white px-4 py-3 shadow-lg hover:bg-primary-700"
+        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-600 to-orange-700 text-white px-4 py-3 shadow-lg hover:brightness-110"
       >
         <ChatBubbleLeftRightIcon className="h-5 w-5" />
         <span className="text-sm font-medium">Ask Chatbot</span>

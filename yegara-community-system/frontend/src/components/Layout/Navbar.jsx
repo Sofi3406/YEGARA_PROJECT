@@ -364,7 +364,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700"
+                  className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-amber-500 hover:to-orange-600"
                 >
                   Register
                 </Link>
@@ -461,7 +461,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/register"
-                  className="text-gray-900 hover:text-primary-600 block px-3 py-2 rounded-md text-base font-medium"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600"
                 >
                   Register
                 </Link>

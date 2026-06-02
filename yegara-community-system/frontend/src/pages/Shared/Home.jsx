@@ -179,7 +179,7 @@ const Home = () => {
               <div className="mt-6 flex flex-wrap justify-center lg:justify-start gap-3">
                 <Link
                   to="/register"
-                  className="px-6 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-cyan-400 to-blue-600 hover:brightness-110"
+                  className="px-6 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-amber-500 to-orange-700 hover:brightness-110"
                 >
                   Get Started
                 </Link>
@@ -435,7 +435,7 @@ const Home = () => {
                 }
               ].map((item) => (
                 <div key={item.step} className="relative">
-                  <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-blue-600 text-white text-3xl font-bold flex items-center justify-center shadow-md">
+                  <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-700 text-white text-3xl font-bold flex items-center justify-center shadow-md">
                     {item.step}
                   </div>
                   <h3 className="mt-4 text-2xl font-display text-slate-900">{item.title}</h3>
@@ -488,7 +488,7 @@ const Home = () => {
           <div className="mt-8">
             <Link
               to="/register"
-              className="inline-flex items-center px-8 py-3 rounded-full text-white font-semibold bg-gradient-to-r from-cyan-400 to-blue-700 hover:brightness-110"
+              className="inline-flex items-center px-8 py-3 rounded-full text-white font-semibold bg-gradient-to-r from-amber-500 to-orange-700 hover:brightness-110"
             >
               Create Account
             </Link>

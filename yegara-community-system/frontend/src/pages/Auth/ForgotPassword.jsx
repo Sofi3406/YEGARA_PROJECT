@@ -32,7 +32,11 @@ const ForgotPassword = () => {
             />
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
           </div>
-          <button type="submit" className="btn btn-primary w-full" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="w-full rounded-md bg-gradient-to-r from-amber-600 to-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-amber-500 hover:to-orange-600 disabled:opacity-60"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? 'Sending...' : 'Send reset link'}
           </button>
         </form>

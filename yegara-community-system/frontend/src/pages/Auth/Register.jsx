@@ -192,7 +192,7 @@ const Register = () => {
 
               <button
                 type="submit"
-                className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 disabled:opacity-60"
+                className="w-full bg-gradient-to-r from-amber-600 to-orange-700 text-white py-3 rounded-xl font-semibold hover:from-amber-500 hover:to-orange-600 disabled:opacity-60"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Creating account...' : 'Create account'}

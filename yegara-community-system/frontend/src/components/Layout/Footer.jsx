@@ -61,8 +61,8 @@ const Footer = ({ compact = false }) => {
 
 
   return (
-    <footer className="relative overflow-hidden border-t border-slate-800 bg-slate-950 text-slate-200">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(56,189,248,0.18),transparent_40%),radial-gradient(circle_at_88%_10%,rgba(251,191,36,0.15),transparent_35%)]" />
+    <footer className="relative overflow-hidden border-t border-amber-900/35 bg-stone-900 text-amber-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(245,158,11,0.16),transparent_42%),radial-gradient(circle_at_88%_10%,rgba(251,191,36,0.12),transparent_36%)]" />
 
       <div className={`relative max-w-7xl mx-auto px-6 ${compact ? 'py-1' : 'py-10'}`}>
         {compact ? (
@@ -73,11 +73,11 @@ const Footer = ({ compact = false }) => {
                 alt="Yegara logo"
                 className="h-8 w-8 rounded-md bg-white object-contain p-0.5"
               />
-              <p className="text-[10px] leading-tight font-semibold uppercase tracking-[0.08em] text-slate-200">
+              <p className="text-[10px] leading-tight font-semibold uppercase tracking-[0.08em] text-amber-100">
                 YEGARA CUMMUNITY REPORT TRACKING AND EVENT MANAGEMENT SYSTEM
               </p>
             </div>
-            <p className="text-[10px] leading-tight text-slate-400">© {year} Yegara Community System. All rights reserved.</p>
+            <p className="text-[10px] leading-tight text-amber-100/65">© {year} Yegara Community System. All rights reserved.</p>
           </div>
         ) : (
           <>
@@ -90,43 +90,43 @@ const Footer = ({ compact = false }) => {
                     className="h-10 w-10 rounded-md bg-white object-contain p-0.5"
                   />
                   <div>
-                    <p className="text-lg font-semibold text-white">Yegara Community</p>
-                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Connected Governance</p>
+                    <p className="text-lg font-semibold text-amber-50">Yegara Community</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-amber-300">Connected Governance</p>
                   </div>
                 </div>
-                <p className="mt-4 text-sm text-slate-300 max-w-sm">
+                <p className="mt-4 text-sm text-amber-100/75 max-w-sm">
                   Building transparent, responsive, and participatory local governance for every resident.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">Explore</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Explore</h4>
                 <div className="mt-4 space-y-2 text-sm">
-                  <Link to={getEventsLink()} className="block hover:text-white transition-colors">Events</Link>
-                  <Link to={getAnnouncementsLink()} className="block hover:text-white transition-colors">Announcements</Link>
-                  <Link to={getDashboardLink()} className="block hover:text-white transition-colors">Dashboard</Link>
+                  <Link to={getEventsLink()} className="block hover:text-amber-50 transition-colors">Events</Link>
+                  <Link to={getAnnouncementsLink()} className="block hover:text-amber-50 transition-colors">Announcements</Link>
+                  <Link to={getDashboardLink()} className="block hover:text-amber-50 transition-colors">Dashboard</Link>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Account</h4>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Account</h4>
                 <div className="mt-4 space-y-2 text-sm">
                   {user ? (
                     <>
-                      <Link to="/profile" className="block hover:text-white transition-colors">Profile</Link>
-                      <Link to="/profile/edit" className="block hover:text-white transition-colors">Edit profile</Link>
+                      <Link to="/profile" className="block hover:text-amber-50 transition-colors">Profile</Link>
+                      <Link to="/profile/edit" className="block hover:text-amber-50 transition-colors">Edit profile</Link>
                     </>
                   ) : (
                     <>
-                      <Link to="/login" className="block hover:text-white transition-colors">Login</Link>
-                      <Link to="/register" className="block hover:text-white transition-colors">Create account</Link>
+                      <Link to="/login" className="block hover:text-amber-50 transition-colors">Login</Link>
+                      <Link to="/register" className="block hover:text-amber-50 transition-colors">Create account</Link>
                     </>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 pt-5 text-xs border-t border-slate-800 text-slate-400 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="mt-8 pt-5 text-xs border-t border-amber-900/30 text-amber-100/65 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <p>© {year} Yegara Community System. All rights reserved.</p>
               <p>Designed for residents, officers, and local administrators.</p>
             </div>

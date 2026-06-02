@@ -25,7 +25,7 @@ const ResidentSidebar = ({ onLogout }) => {
   ];
 
   return (
-    <div className="w-64 bg-gray-900 text-white h-full flex flex-col">
+    <div className="w-64 bg-stone-900 text-amber-50 h-full flex flex-col border-r border-amber-900/30">
       <nav className="mt-5 px-2 space-y-1 flex-1">
         {links.map((link) => (
           <NavLink
@@ -34,8 +34,8 @@ const ResidentSidebar = ({ onLogout }) => {
             className={({ isActive }) =>
               `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                 isActive
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-amber-900/35 text-amber-50'
+                  : 'text-amber-100/80 hover:bg-stone-800 hover:text-amber-50'
               }`
             }
           >
@@ -48,7 +48,7 @@ const ResidentSidebar = ({ onLogout }) => {
         <button
           type="button"
           onClick={onLogout}
-          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-600 hover:text-white"
+          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-700/80 hover:text-white"
         >
           <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
           Logout
@@ -71,7 +71,7 @@ const OfficerSidebar = ({ onLogout }) => {
   ];
 
   return (
-    <div className="w-64 bg-gray-800 text-white h-full flex flex-col">
+    <div className="w-64 bg-stone-900 text-amber-50 h-full flex flex-col border-r border-amber-900/30">
       <div className="p-4">
         <h2 className="text-lg font-semibold">Department Officer</h2>
       </div>
@@ -83,8 +83,8 @@ const OfficerSidebar = ({ onLogout }) => {
             className={({ isActive }) =>
               `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                 isActive
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-300 hover:bg-gray-600 hover:text-white'
+                  ? 'bg-amber-900/35 text-amber-50'
+                  : 'text-amber-100/80 hover:bg-stone-800 hover:text-amber-50'
               }`
             }
           >
@@ -97,7 +97,7 @@ const OfficerSidebar = ({ onLogout }) => {
         <button
           type="button"
           onClick={onLogout}
-          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-600 hover:text-white"
+          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-700/80 hover:text-white"
         >
           <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
           Logout
@@ -121,7 +121,7 @@ const WoredaAdminSidebar = ({ onLogout }) => {
   ];
 
   return (
-    <div className="w-64 bg-gray-900 text-white h-full flex flex-col">
+    <div className="w-64 bg-stone-900 text-amber-50 h-full flex flex-col border-r border-amber-900/30">
       <div className="p-4">
         <h2 className="text-lg font-semibold">Woreda Admin</h2>
       </div>
@@ -133,8 +133,8 @@ const WoredaAdminSidebar = ({ onLogout }) => {
             className={({ isActive }) =>
               `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                 isActive
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-amber-900/35 text-amber-50'
+                  : 'text-amber-100/80 hover:bg-stone-800 hover:text-amber-50'
               }`
             }
           >
@@ -147,7 +147,7 @@ const WoredaAdminSidebar = ({ onLogout }) => {
         <button
           type="button"
           onClick={onLogout}
-          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-600 hover:text-white"
+          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-700/80 hover:text-white"
         >
           <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
           Logout
@@ -170,10 +170,10 @@ const SubCityAdminSidebar = ({ onLogout }) => {
   ];
 
   return (
-    <div className="w-64 bg-gray-900 text-white h-full flex flex-col">
+    <div className="w-64 bg-stone-900 text-amber-50 h-full flex flex-col border-r border-amber-900/30">
       <div className="p-4">
         <h2 className="text-lg font-semibold">Sub-City Admin</h2>
-        <p className="text-sm text-gray-300">Sub city administration</p>
+        <p className="text-sm text-amber-100/70">Sub city administration</p>
       </div>
       <nav className="mt-5 px-2 space-y-1 flex-1">
         {links.map((link) => (
@@ -183,8 +183,8 @@ const SubCityAdminSidebar = ({ onLogout }) => {
             className={({ isActive }) =>
               `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                 isActive
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-amber-900/35 text-amber-50'
+                  : 'text-amber-100/80 hover:bg-stone-800 hover:text-amber-50'
               }`
             }
           >
@@ -197,7 +197,7 @@ const SubCityAdminSidebar = ({ onLogout }) => {
         <button
           type="button"
           onClick={onLogout}
-          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-100 hover:bg-red-600 hover:text-white"
+          className="group flex w-full items-center px-3 py-2 text-sm font-semibold rounded-md text-red-200 hover:bg-red-700/80 hover:text-white"
         >
           <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
           Logout
