@@ -2,6 +2,16 @@
 
 Yegara is a full-stack community platform that helps residents report local issues, track service progress, and stay informed through announcements, events, meetings, and notifications.
 
+**Live demo:** [https://yegara-vercel-frontend-7tko.vercel.app](https://yegara-vercel-frontend-7tko.vercel.app)
+
+## Group Members
+
+| Name | Student ID |
+|------|------------|
+| Sofiya Yasin | UGR/7314/15 |
+| Yasmin Anwar | UGR/7449/15 |
+| Rumeysa Abdellah | UGR/6877/15 |
+
 This repository contains:
 - A Node.js + Express + MongoDB backend API
 - A React frontend dashboard for residents and administrators
@@ -221,15 +231,4 @@ Health check:
 - Helmet is enabled for security headers.
 - Uploaded files are served from `/uploads`.
 - The `mongodb-data/` folder appears to contain local database files; avoid committing real data in public repositories.
-
-## Future Improvements
-
-- Add API documentation (OpenAPI/Swagger)
-- Add end-to-end tests and CI workflows
-- Add Docker setup for one-command local run
-- Add seed scripts for demo data
-
-## License
-
-This project is currently licensed under the MIT License (as declared in backend package settings).
 
