@@ -1,20 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ActivateAccount = () => {
-  const { activateAccount, token } = useAuth();
+  const { token: activationToken } = useParams();
+  const { activateAccount, activateAccountWithToken, token } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
+  const isEmailLinkFlow = Boolean(activationToken);
+
   useEffect(() => {
+    if (isEmailLinkFlow) {
+      return;
+    }
+
     const storedToken = token || localStorage.getItem('token');
     if (!storedToken) {
       navigate('/login');
     }
-  }, [token, navigate]);
+  }, [token, navigate, isEmailLinkFlow]);
+
+  const getDashboardPath = (role) => {
+    switch (role) {
+      case 'officer':
+        return '/officer/dashboard';
+      case 'woreda_admin':
+        return '/woreda-admin/dashboard';
+      case 'subcity_admin':
+        return '/subcity-admin/dashboard';
+      default:
+        return '/';
+    }
+  };
 
   const onSubmit = async (data) => {
     if (data.newPassword !== data.confirmPassword) {
@@ -22,8 +42,13 @@ const ActivateAccount = () => {
     }
     setIsSubmitting(true);
     try {
-      await activateAccount(data.newPassword);
-      navigate('/profile/edit');
+      if (isEmailLinkFlow) {
+        const user = await activateAccountWithToken(activationToken, data.newPassword);
+        navigate(getDashboardPath(user?.role));
+      } else {
+        await activateAccount(data.newPassword);
+        navigate('/profile/edit');
+      }
     } finally {
       setIsSubmitting(false);
     }

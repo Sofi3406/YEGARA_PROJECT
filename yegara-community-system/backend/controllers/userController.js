@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { createActivationToken, buildActivationUrl } = require('../utils/activationToken');
 const ErrorResponse = require('../utils/errorResponse');
 const sendEmail = require('../utils/emailService');
 const { buildWoredaRegex, isSameWoreda } = require('../utils/woreda');
@@ -119,27 +120,30 @@ exports.createUser = async (req, res, next) => {
     // Generate password and access code
     const tempPassword = Math.random().toString(36).slice(-8);
     const accessCode = role === 'officer' ? User.generateAccessCode() : undefined;
-    
+    const { plainToken, activationToken, activationExpire } = createActivationToken();
+
     const userData = {
       ...req.body,
       password: tempPassword,
       accessCode,
       isActive: false, // Requires activation
-      mustChangePassword: role === 'woreda_admin'
+      mustChangePassword: role === 'woreda_admin',
+      activationToken,
+      activationExpire
     };
-    
+
     const user = await User.create(userData);
-    
+
+    const activateUrl = buildActivationUrl(plainToken);
+
     // Send activation email
     const message = `
       <h2>Welcome to Yegara Community System</h2>
       <p>Your account has been created as a ${role}.</p>
       ${role === 'officer' ? `<p>Your access code: <strong>${accessCode}</strong></p>` : ''}
-      <p>Please use the following temporary credentials to login:</p>
-      <p>Email: ${email}</p>
-      <p>Temporary Password: ${tempPassword}</p>
-      <p>You will be asked to create a new password after your first login.</p>
-      <p><a href="${process.env.FRONTEND_URL}/activate">Click here to activate your account</a></p>
+      <p>Click the link below to set your password and activate your account:</p>
+      <p><a href="${activateUrl}">${activateUrl}</a></p>
+      <p>This link will expire in 24 hours.</p>
     `;
     
     await sendEmail({

@@ -71,6 +71,8 @@ const userSchema = new mongoose.Schema({
   lastLogin: Date,
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  activationToken: String,
+  activationExpire: Date,
   profileImage: String,
   createdAt: {
     type: Date,

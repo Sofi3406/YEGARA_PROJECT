@@ -2,6 +2,11 @@ const User = require('../models/User');
 const ErrorResponse = require('../utils/errorResponse');
 const sendEmail = require('../utils/emailService');
 const crypto = require('crypto');
+const {
+  createActivationToken,
+  hashActivationToken,
+  buildActivationUrl
+} = require('../utils/activationToken');
 
 // Generate JWT Token
 const sendTokenResponse = (user, statusCode, res, extra = {}) => {
@@ -113,16 +118,21 @@ exports.register = async (req, res, next) => {
 
     // Send activation email for officers/admins
     if (role !== 'resident') {
+      const { plainToken, activationToken, activationExpire } = createActivationToken();
+      user.activationToken = activationToken;
+      user.activationExpire = activationExpire;
+      await user.save({ validateBeforeSave: false });
+
+      const activateUrl = buildActivationUrl(plainToken);
       const message = `
         <h2>Welcome to Yegara Community System</h2>
         <p>Your account has been created as a ${role}.</p>
         ${role === 'officer' ? `<p>Your access code: <strong>${accessCode}</strong></p>` : ''}
-        <p>Please use the following temporary credentials to login:</p>
-        <p>Email: ${email}</p>
-        <p>Temporary Password: ${password}</p>
-        <p><a href="${process.env.FRONTEND_URL}/activate">Click here to activate your account</a></p>
+        <p>Click the link below to set your password and activate your account:</p>
+        <p><a href="${activateUrl}">${activateUrl}</a></p>
+        <p>This link will expire in 24 hours.</p>
       `;
-      
+
       await sendEmail({
         email: user.email,
         subject: 'Account Activation - Yegara Community System',
@@ -175,15 +185,15 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// @desc    Activate account
+// @desc    Activate account (logged in after first login)
 // @route   PUT /api/auth/activate
 // @access  Private
 exports.activateAccount = async (req, res, next) => {
   try {
     const { newPassword } = req.body;
-    
+
     const user = await User.findById(req.user.id).select('+password');
-    
+
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
     }
@@ -191,12 +201,47 @@ exports.activateAccount = async (req, res, next) => {
     user.password = newPassword;
     user.isActive = true;
     user.mustChangePassword = false;
+    user.activationToken = undefined;
+    user.activationExpire = undefined;
     await user.save();
 
     res.status(200).json({
       success: true,
       message: 'Account activated successfully'
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Activate account via email link
+// @route   PUT /api/auth/activate/:activationtoken
+// @access  Public
+exports.activateAccountWithToken = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return next(new ErrorResponse('Password must be at least 6 characters', 400));
+    }
+
+    const user = await User.findOne({
+      activationToken: hashActivationToken(req.params.activationtoken),
+      activationExpire: { $gt: Date.now() }
+    }).select('+password');
+
+    if (!user) {
+      return next(new ErrorResponse('Invalid or expired activation link', 400));
+    }
+
+    user.password = newPassword;
+    user.isActive = true;
+    user.mustChangePassword = false;
+    user.activationToken = undefined;
+    user.activationExpire = undefined;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
   } catch (err) {
     next(err);
   }

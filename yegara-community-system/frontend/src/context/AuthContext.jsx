@@ -152,6 +152,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const activateAccountWithToken = async (activationToken, newPassword) => {
+    try {
+      const response = await axios.put(`/auth/activate/${activationToken}`, { newPassword });
+      const { token: jwtToken, user: activatedUser } = response.data;
+
+      localStorage.setItem('token', jwtToken);
+      setToken(jwtToken);
+      setUser(activatedUser);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`;
+
+      toast.success('Account activated successfully');
+      return activatedUser;
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Activation failed');
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -163,7 +181,8 @@ export const AuthProvider = ({ children }) => {
     updatePassword,
     forgotPassword,
     resetPassword,
-    activateAccount
+    activateAccount,
+    activateAccountWithToken
   };
 
   return (

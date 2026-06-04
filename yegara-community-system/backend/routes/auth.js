@@ -9,7 +9,8 @@ const {
   updatePassword,
   forgotPassword,
   resetPassword,
-  activateAccount
+  activateAccount,
+  activateAccountWithToken
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
@@ -21,6 +22,7 @@ router.put('/updatedetails', authenticate, updateDetails);
 router.put('/updatepassword', authenticate, updatePassword);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resettoken', resetPassword);
+router.put('/activate/:activationtoken', activateAccountWithToken);
 router.put('/activate', authenticate, activateAccount);
 
 module.exports = router;
