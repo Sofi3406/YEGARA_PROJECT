@@ -28,18 +28,18 @@ router.route('/my-reports')
 router.route('/public-updates')
   .get(getPublicUpdates);
 
-router.route('/:id')
-  .get(getReport)
-  .put(upload.array('images', 5), updateReport)
-  .delete(deleteReport);
-
-router.route('/:id/updates')
-  .post(authorize('officer', 'woreda_admin', 'subcity_admin'), postUpdate);
-
 router.route('/woreda/:woreda')
   .get(authorize('woreda_admin', 'subcity_admin'), getReportsByWoreda);
 
 router.route('/department/:department')
   .get(authorize('officer', 'woreda_admin', 'subcity_admin'), getReportsByDepartment);
+
+router.route('/:id/updates')
+  .post(authorize('officer', 'woreda_admin', 'subcity_admin'), postUpdate);
+
+router.route('/:id')
+  .get(getReport)
+  .put(upload.array('images', 5), updateReport)
+  .delete(deleteReport);
 
 module.exports = router;

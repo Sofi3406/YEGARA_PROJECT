@@ -3,18 +3,11 @@ const User = require('../models/User');
 const ErrorResponse = require('../utils/errorResponse');
 const sendEmail = require('../utils/emailService');
 
-const { buildWoredaRegex, normalizeWoreda } = require('../utils/woreda');
-
-const isOfficerAllowedForReport = (user, report) => {
-  if (user.role !== 'officer') {
-    return true;
-  }
-
-  return (
-    report.department === user.department &&
-    normalizeWoreda(report.woreda) === normalizeWoreda(user.woreda)
-  );
-};
+const { buildWoredaRegex, normalizeWoreda, isSameWoreda } = require('../utils/woreda');
+const {
+  isOfficerAllowedForReport,
+  buildOfficerReportQuery
+} = require('../utils/officerReportAccess');
 
 // @desc    Get all reports
 // @route   GET /api/reports
@@ -38,8 +31,15 @@ exports.getReports = async (req, res, next) => {
     }
 
     if (req.user.role === 'officer') {
+      if (!req.user.department) {
+        return next(new ErrorResponse('Officer department not configured', 403));
+      }
+
       const woredaRegex = buildWoredaRegex(req.user.woreda);
-      parsedQuery.department = req.user.department;
+      delete parsedQuery.department;
+      delete parsedQuery.category;
+      delete parsedQuery.woreda;
+      Object.assign(parsedQuery, buildOfficerReportQuery(req.user));
       parsedQuery.woreda = woredaRegex ? { $regex: woredaRegex } : req.user.woreda;
     }
 
@@ -132,7 +132,14 @@ exports.getReport = async (req, res, next) => {
       return next(new ErrorResponse('Not authorized to access this report', 403));
     }
     
-    if (!isOfficerAllowedForReport(req.user, report)) {
+    if (req.user.role === 'officer' && !isOfficerAllowedForReport(req.user, report)) {
+      return next(new ErrorResponse('Not authorized to access this report', 403));
+    }
+
+    if (
+      req.user.role === 'woreda_admin' &&
+      !isSameWoreda(req.user.woreda, report.woreda)
+    ) {
       return next(new ErrorResponse('Not authorized to access this report', 403));
     }
     
@@ -282,19 +289,34 @@ exports.updateReport = async (req, res, next) => {
       return next(new ErrorResponse('Not authorized to update this report', 403));
     }
     
-    // Officers can only update reports in their department
     if (req.user.role === 'officer') {
-      if (!isOfficerAllowedForReport(req.user, report)) {
-        return next(new ErrorResponse('Not authorized to update this report', 403));
+      if (!req.user.department) {
+        return next(new ErrorResponse('Officer department not configured', 403));
       }
-      
+
+      if (!isOfficerAllowedForReport(req.user, report)) {
+        return next(
+          new ErrorResponse(
+            'You can only update reports for your department in your woreda',
+            403
+          )
+        );
+      }
+
       // Officers can only update status and add updates
-      const allowedUpdates = ['status', 'updates', 'assignedOfficer'];
+      const allowedUpdates = ['status', 'updates', 'assignedOfficer', 'updateMessage'];
       Object.keys(req.body).forEach(key => {
         if (!allowedUpdates.includes(key)) {
           delete req.body[key];
         }
       });
+    }
+
+    if (
+      req.user.role === 'woreda_admin' &&
+      !isSameWoreda(req.user.woreda, report.woreda)
+    ) {
+      return next(new ErrorResponse('Not authorized to update this report', 403));
     }
     
     // Add update history if status is changing
@@ -363,8 +385,18 @@ exports.deleteReport = async (req, res, next) => {
       return next(new ErrorResponse('Report not found', 404));
     }
     
-    // Only admins and report owner can delete
     if (req.user.role === 'resident' && report.residentId.toString() !== req.user.id) {
+      return next(new ErrorResponse('Not authorized to delete this report', 403));
+    }
+
+    if (req.user.role === 'officer') {
+      return next(new ErrorResponse('Not authorized to delete reports', 403));
+    }
+
+    if (
+      req.user.role === 'woreda_admin' &&
+      !isSameWoreda(req.user.woreda, report.woreda)
+    ) {
       return next(new ErrorResponse('Not authorized to delete this report', 403));
     }
     
@@ -404,12 +436,24 @@ exports.getReportsByWoreda = async (req, res, next) => {
 // @access  Private (Officer)
 exports.getReportsByDepartment = async (req, res, next) => {
   try {
-    // Verify officer has access to this department
-    if (req.user.role === 'officer' && req.params.department !== req.user.department) {
-      return next(new ErrorResponse('Not authorized to access this department', 403));
+    if (req.user.role === 'officer') {
+      if (!req.user.department) {
+        return next(new ErrorResponse('Officer department not configured', 403));
+      }
+
+      if (req.params.department !== req.user.department) {
+        return next(new ErrorResponse('Not authorized to access this department', 403));
+      }
     }
 
-    const query = { department: req.params.department };
+    const department = req.user.role === 'officer' ? req.user.department : req.params.department;
+    const query = {
+      $or: [
+        { department },
+        { department: { $in: [null, ''] }, category: department }
+      ]
+    };
+
     if (req.user.role === 'officer') {
       const woredaRegex = buildWoredaRegex(req.user.woreda);
       query.woreda = woredaRegex ? { $regex: woredaRegex } : req.user.woreda;
@@ -439,9 +483,13 @@ exports.getMyReports = async (req, res, next) => {
     if (req.user.role === 'resident') {
       query = { residentId: req.user.id };
     } else if (req.user.role === 'officer') {
+      if (!req.user.department) {
+        return next(new ErrorResponse('Officer department not configured', 403));
+      }
+
       const woredaRegex = buildWoredaRegex(req.user.woreda);
       query = {
-        department: req.user.department,
+        ...buildOfficerReportQuery(req.user),
         woreda: woredaRegex ? { $regex: woredaRegex } : req.user.woreda
       };
     } else if (req.user.role === 'woreda_admin') {
@@ -540,8 +588,25 @@ exports.postUpdate = async (req, res, next) => {
       return next(new ErrorResponse('Report not found', 404));
     }
     
-    // Check if officer has access to this report
-    if (!isOfficerAllowedForReport(req.user, report)) {
+    if (req.user.role === 'officer') {
+      if (!req.user.department) {
+        return next(new ErrorResponse('Officer department not configured', 403));
+      }
+
+      if (!isOfficerAllowedForReport(req.user, report)) {
+        return next(
+          new ErrorResponse(
+            'You can only post updates for your department in your woreda',
+            403
+          )
+        );
+      }
+    }
+
+    if (
+      req.user.role === 'woreda_admin' &&
+      !isSameWoreda(req.user.woreda, report.woreda)
+    ) {
       return next(new ErrorResponse('Not authorized to update this report', 403));
     }
     

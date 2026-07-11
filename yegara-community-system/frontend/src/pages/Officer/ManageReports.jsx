@@ -46,7 +46,7 @@ const ManageReports = () => {
       setStatus('');
       fetchReports();
     } catch (error) {
-      toast.error('Unable to update report');
+      toast.error(error.response?.data?.error || 'Unable to update report');
     }
   };
 
