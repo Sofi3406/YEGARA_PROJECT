@@ -31,6 +31,10 @@ const ActivateAccount = () => {
         return '/woreda-admin/dashboard';
       case 'subcity_admin':
         return '/subcity-admin/dashboard';
+      case 'regional_admin':
+        return '/regional-admin/dashboard';
+      case 'system_admin':
+        return '/system-admin/dashboard';
       default:
         return '/';
     }

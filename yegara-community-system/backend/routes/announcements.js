@@ -17,9 +17,9 @@ router.use(authenticate);
 
 router.route('/')
   .get(getAnnouncements)
-  .post(authorize('officer', 'woreda_admin', 'subcity_admin'), upload.single('image'), createAnnouncement);
+  .post(authorize('officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), upload.single('image'), createAnnouncement);
 
 router.route('/:id')
-  .delete(authorize('officer', 'woreda_admin', 'subcity_admin'), deleteAnnouncement);
+  .delete(authorize('officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), deleteAnnouncement);
 
 module.exports = router;

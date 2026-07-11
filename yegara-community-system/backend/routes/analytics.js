@@ -8,7 +8,7 @@ const {
 const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
-router.use(authorize('subcity_admin'));
+router.use(authorize('system_admin', 'regional_admin', 'subcity_admin'));
 
 router.get('/', getAnalytics);
 router.get('/realtime', getRealtimeData);

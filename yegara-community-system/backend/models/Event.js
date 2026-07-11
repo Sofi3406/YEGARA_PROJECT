@@ -21,6 +21,14 @@ const eventSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  region: {
+    type: String,
+    trim: true
+  },
+  subcity: {
+    type: String,
+    trim: true
+  },
   woreda: {
     type: String,
     required: true

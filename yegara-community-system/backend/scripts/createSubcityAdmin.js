@@ -5,10 +5,10 @@ const User = require('../models/User');
 dotenv.config();
 
 const ADMIN_USER = {
-  fullName: 'Sofiya Yasin',
-  email: 'sofiyasin190@gmail.com',
+  fullName: 'System Admin',
+  email: 'yegara@gmail.com',
   password: 'Yegara@123',
-  role: 'subcity_admin',
+  role: 'system_admin',
   isActive: true
 };
 
@@ -19,17 +19,23 @@ const run = async () => {
       useUnifiedTopology: true
     });
 
-    const existing = await User.findOne({ email: ADMIN_USER.email });
+    const existing = await User.findOne({ $or: [{ email: ADMIN_USER.email }, { role: 'system_admin' }] });
     if (existing) {
-      console.error('User already exists. No changes were made.');
-      process.exit(1);
+      existing.fullName = ADMIN_USER.fullName;
+      existing.email = ADMIN_USER.email;
+      existing.role = ADMIN_USER.role;
+      existing.isActive = ADMIN_USER.isActive;
+      existing.password = ADMIN_USER.password;
+      await existing.save();
+      console.log('System admin user updated successfully.');
+      process.exit(0);
     }
 
     await User.create(ADMIN_USER);
-    console.log('Subcity admin user created successfully.');
+    console.log('System admin user created successfully.');
     process.exit(0);
   } catch (error) {
-    console.error('Failed to create subcity admin user:', error.message);
+    console.error('Failed to create system admin user:', error.message);
     process.exit(1);
   }
 };

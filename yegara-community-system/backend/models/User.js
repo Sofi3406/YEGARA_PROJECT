@@ -27,13 +27,27 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['resident', 'officer', 'woreda_admin', 'subcity_admin'],
+    enum: ['resident', 'officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'],
     required: true
+  },
+  region: {
+    type: String,
+    trim: true,
+    required: function() {
+      return this.role !== 'system_admin';
+    }
+  },
+  subcity: {
+    type: String,
+    trim: true,
+    required: function() {
+      return ['resident', 'officer', 'woreda_admin', 'subcity_admin'].includes(this.role);
+    }
   },
   woreda: {
     type: String,
     required: function() {
-      return this.role === 'resident' || this.role === 'woreda_admin';
+      return ['resident', 'officer', 'woreda_admin'].includes(this.role);
     }
   },
   customWoredaName: {

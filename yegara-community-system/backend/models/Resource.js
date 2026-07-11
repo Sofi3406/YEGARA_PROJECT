@@ -19,6 +19,8 @@ const resourceSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  region: String,
+  subcity: String,
   department: String,
   woreda: String,
   category: {

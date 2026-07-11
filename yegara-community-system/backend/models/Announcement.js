@@ -21,6 +21,14 @@ const announcementSchema = new mongoose.Schema({
     type: [String],
     default: ['all']
   },
+  region: {
+    type: String,
+    trim: true
+  },
+  subcity: {
+    type: String,
+    trim: true
+  },
   woreda: {
     type: String
   },

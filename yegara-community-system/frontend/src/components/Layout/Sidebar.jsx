@@ -157,23 +157,23 @@ const WoredaAdminSidebar = ({ onLogout }) => {
   );
 };
 
-const SubCityAdminSidebar = ({ onLogout }) => {
+const AdminSidebar = ({ onLogout, basePath, title, subtitle }) => {
   const links = [
-    { to: '/subcity-admin/dashboard', icon: HomeIcon, label: 'Analytics' },
-    { to: '/subcity-admin/reports', icon: DocumentTextIcon, label: 'All Reports' },
-    { to: '/subcity-admin/admins', icon: UserGroupIcon, label: 'Manage Woreda Admins' },
-    { to: '/subcity-admin/events', icon: CalendarIcon, label: 'Manage Events' },
-    { to: '/subcity-admin/users', icon: UserGroupIcon, label: 'User Management' },
-    { to: '/subcity-admin/meetings', icon: CalendarIcon, label: 'Virtual Meetings' },
-    { to: '/subcity-admin/announcements', icon: DocumentTextIcon, label: 'Announcements' },
+    { to: `${basePath}/dashboard`, icon: HomeIcon, label: 'Dashboard' },
+    { to: `${basePath}/reports`, icon: DocumentTextIcon, label: 'Reports' },
+    { to: `${basePath}/admins`, icon: UserGroupIcon, label: 'Admin Management' },
+    { to: `${basePath}/events`, icon: CalendarIcon, label: 'Events' },
+    { to: `${basePath}/users`, icon: UserGroupIcon, label: 'Users' },
+    { to: `${basePath}/meetings`, icon: CalendarIcon, label: 'Meetings' },
+    { to: `${basePath}/announcements`, icon: DocumentTextIcon, label: 'Announcements' },
     { to: '/profile/edit', icon: UserCircleIcon, label: 'Edit Profile' }
   ];
 
   return (
     <div className="w-64 bg-stone-900 text-amber-50 h-full flex flex-col border-r border-amber-900/30">
       <div className="p-4">
-        <h2 className="text-lg font-semibold">Sub-City Admin</h2>
-        <p className="text-sm text-amber-100/70">Sub city administration</p>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {subtitle ? <p className="text-sm text-amber-100/70">{subtitle}</p> : null}
       </div>
       <nav className="mt-5 px-2 space-y-1 flex-1">
         {links.map((link) => (
@@ -219,8 +219,12 @@ const Sidebar = () => {
       return <OfficerSidebar onLogout={logout} />;
     case 'woreda_admin':
       return <WoredaAdminSidebar onLogout={logout} />;
+    case 'regional_admin':
+      return <AdminSidebar onLogout={logout} basePath="/regional-admin" title="Regional Admin" subtitle="Regional administration" />;
+    case 'system_admin':
+      return <AdminSidebar onLogout={logout} basePath="/system-admin" title="System Admin" subtitle="Whole system administration" />;
     case 'subcity_admin':
-      return <SubCityAdminSidebar onLogout={logout} />;
+      return <AdminSidebar onLogout={logout} basePath="/subcity-admin" title="Sub-City Admin" subtitle="Sub city administration" />;
     default:
       return null;
   }

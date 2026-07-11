@@ -7,6 +7,7 @@ const {
   hashActivationToken,
   buildActivationUrl
 } = require('../utils/activationToken');
+const { normalizeScopeValue } = require('../utils/adminHierarchy');
 
 // Generate JWT Token
 const sendTokenResponse = (user, statusCode, res, extra = {}) => {
@@ -35,6 +36,8 @@ const sendTokenResponse = (user, statusCode, res, extra = {}) => {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        region: user.region,
+        subcity: user.subcity,
         woreda: user.woreda,
         department: user.department
       },
@@ -47,7 +50,24 @@ const sendTokenResponse = (user, statusCode, res, extra = {}) => {
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, fullName, phone, role, woreda, department, customWoredaName } = req.body;
+    const {
+      email,
+      password,
+      fullName,
+      phone,
+      role,
+      region,
+      subcity,
+      woreda,
+      department,
+      customRegionName,
+      customSubcityName,
+      customWoredaName
+    } = req.body;
+
+    if (role && role !== 'resident') {
+      return next(new ErrorResponse('Public registration is for residents only', 403));
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -55,19 +75,33 @@ exports.register = async (req, res, next) => {
       return next(new ErrorResponse('User already exists', 400));
     }
 
-    let finalWoreda = woreda;
+    let finalRegion = normalizeScopeValue(region);
+    let finalSubcity = normalizeScopeValue(subcity);
+    let finalWoreda = normalizeScopeValue(woreda);
 
-    if (role === 'resident' && woreda === 'Other') {
+    if (region === 'Other') {
+      if (!customRegionName || !customRegionName.trim()) {
+        return next(new ErrorResponse('Please provide your region name', 400));
+      }
+      finalRegion = customRegionName.trim();
+    }
+
+    if (subcity === 'Other') {
+      if (!customSubcityName || !customSubcityName.trim()) {
+        return next(new ErrorResponse('Please provide your sub city name', 400));
+      }
+      finalSubcity = customSubcityName.trim();
+    }
+
+    if (!finalRegion || !finalSubcity || !finalWoreda) {
+      return next(new ErrorResponse('Please select region, sub city, and woreda', 400));
+    }
+
+    if (woreda === 'Other') {
       if (!customWoredaName || !customWoredaName.trim()) {
         return next(new ErrorResponse('Please provide your woreda name', 400));
       }
       finalWoreda = customWoredaName.trim();
-    }
-
-    // Generate access code for officers
-    let accessCode;
-    if (role === 'officer') {
-      accessCode = User.generateAccessCode();
     }
 
     // Create user
@@ -76,24 +110,27 @@ exports.register = async (req, res, next) => {
       password,
       fullName,
       phone,
-      role,
+      role: 'resident',
+      region: finalRegion,
+      subcity: finalSubcity,
       woreda: finalWoreda,
       department,
-      customWoredaName: role === 'resident' && woreda === 'Other' ? finalWoreda : undefined,
-      accessCode,
-      isActive: role === 'resident' ? true : false // Residents are active immediately
+      customWoredaName: woreda === 'Other' ? finalWoreda : undefined,
+      isActive: true
     });
 
-    if (role === 'resident' && woreda === 'Other') {
-      const subcityAdmins = await User.find({ role: 'subcity_admin', isActive: true });
+    if (woreda === 'Other') {
+      const systemAdmins = await User.find({ role: 'system_admin', isActive: true });
       const io = req.app.get('io');
 
       await Promise.all(
-        subcityAdmins.map(async (admin) => {
+        systemAdmins.map(async (admin) => {
           if (admin.email) {
             const emailBody = `
               <h2>New Woreda Request</h2>
               <p>A resident registered with a woreda not yet listed.</p>
+              <p><strong>Region:</strong> ${finalRegion}</p>
+              <p><strong>Sub city:</strong> ${finalSubcity}</p>
               <p><strong>Requested Woreda:</strong> ${finalWoreda}</p>
               <p><strong>Resident:</strong> ${fullName} (${email})</p>
             `;
@@ -127,7 +164,6 @@ exports.register = async (req, res, next) => {
       const message = `
         <h2>Welcome to Yegara Community System</h2>
         <p>Your account has been created as a ${role}.</p>
-        ${role === 'officer' ? `<p>Your access code: <strong>${accessCode}</strong></p>` : ''}
         <p>Click the link below to set your password and activate your account:</p>
         <p><a href="${activateUrl}">${activateUrl}</a></p>
         <p>This link will expire in 24 hours.</p>
@@ -177,7 +213,7 @@ exports.login = async (req, res, next) => {
 
     // Update last login
     user.lastLogin = new Date();
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     sendTokenResponse(user, 200, res, { requiresActivation, requiresPasswordChange });
   } catch (err) {
@@ -266,7 +302,10 @@ exports.updateDetails = async (req, res, next) => {
   const fieldsToUpdate = {
     fullName: req.body.fullName,
     email: req.body.email,
-    phone: req.body.phone
+    phone: req.body.phone,
+    region: req.body.region,
+    subcity: req.body.subcity,
+    woreda: req.body.woreda
   };
 
   const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {

@@ -43,7 +43,18 @@ exports.getReports = async (req, res, next) => {
       parsedQuery.woreda = woredaRegex ? { $regex: woredaRegex } : req.user.woreda;
     }
 
+    if (req.user.role === 'regional_admin' && req.user.region) {
+      parsedQuery.region = req.user.region;
+    }
+
+    if (req.user.role === 'subcity_admin') {
+      if (req.user.region) parsedQuery.region = req.user.region;
+      if (req.user.subcity) parsedQuery.subcity = req.user.subcity;
+    }
+
     if (req.user.role === 'woreda_admin') {
+      if (req.user.region) parsedQuery.region = req.user.region;
+      if (req.user.subcity) parsedQuery.subcity = req.user.subcity;
       const woredaRegex = buildWoredaRegex(req.user.woreda);
       parsedQuery.woreda = woredaRegex ? { $regex: woredaRegex } : req.user.woreda;
     }
@@ -136,6 +147,20 @@ exports.getReport = async (req, res, next) => {
       return next(new ErrorResponse('Not authorized to access this report', 403));
     }
 
+    if (req.user.role === 'regional_admin' && req.user.region && report.region !== req.user.region) {
+      return next(new ErrorResponse('Not authorized to access this report', 403));
+    }
+
+    if (req.user.role === 'subcity_admin') {
+      if (req.user.region && report.region !== req.user.region) {
+        return next(new ErrorResponse('Not authorized to access this report', 403));
+      }
+
+      if (req.user.subcity && report.subcity !== req.user.subcity) {
+        return next(new ErrorResponse('Not authorized to access this report', 403));
+      }
+    }
+
     if (
       req.user.role === 'woreda_admin' &&
       !isSameWoreda(req.user.woreda, report.woreda)
@@ -159,6 +184,8 @@ exports.createReport = async (req, res, next) => {
   try {
     // Add resident to req.body
     req.body.residentId = req.user.id;
+    req.body.region = req.user.region;
+    req.body.subcity = req.user.subcity;
     req.body.woreda = req.user.woreda;
     
     if (req.body.category === 'Other' && (!req.body.customCategory || !req.body.customCategory.trim())) {
@@ -318,6 +345,20 @@ exports.updateReport = async (req, res, next) => {
     ) {
       return next(new ErrorResponse('Not authorized to update this report', 403));
     }
+
+    if (req.user.role === 'regional_admin' && req.user.region && report.region !== req.user.region) {
+      return next(new ErrorResponse('Not authorized to update this report', 403));
+    }
+
+    if (req.user.role === 'subcity_admin') {
+      if (req.user.region && report.region !== req.user.region) {
+        return next(new ErrorResponse('Not authorized to update this report', 403));
+      }
+
+      if (req.user.subcity && report.subcity !== req.user.subcity) {
+        return next(new ErrorResponse('Not authorized to update this report', 403));
+      }
+    }
     
     // Add update history if status is changing
     if (req.body.status && req.body.status !== report.status) {
@@ -398,6 +439,20 @@ exports.deleteReport = async (req, res, next) => {
       !isSameWoreda(req.user.woreda, report.woreda)
     ) {
       return next(new ErrorResponse('Not authorized to delete this report', 403));
+    }
+
+    if (req.user.role === 'regional_admin' && req.user.region && report.region !== req.user.region) {
+      return next(new ErrorResponse('Not authorized to delete this report', 403));
+    }
+
+    if (req.user.role === 'subcity_admin') {
+      if (req.user.region && report.region !== req.user.region) {
+        return next(new ErrorResponse('Not authorized to delete this report', 403));
+      }
+
+      if (req.user.subcity && report.subcity !== req.user.subcity) {
+        return next(new ErrorResponse('Not authorized to delete this report', 403));
+      }
     }
     
     await report.remove();

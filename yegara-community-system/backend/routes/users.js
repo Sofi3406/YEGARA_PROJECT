@@ -14,15 +14,15 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.use(authenticate);
 
 router.route('/')
-  .get(authorize('woreda_admin', 'subcity_admin'), getUsers)
-  .post(authorize('woreda_admin', 'subcity_admin'), createUser);
+  .get(authorize('system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'), getUsers)
+  .post(authorize('system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'), createUser);
 
 router.route('/:id')
   .get(getUser)
   .put(updateUser)
-  .delete(authorize('woreda_admin', 'subcity_admin'), deleteUser);
+  .delete(authorize('system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'), deleteUser);
 
-router.get('/woreda/:woreda', authorize('woreda_admin', 'subcity_admin'), getUsersByWoreda);
-router.get('/role/:role', authorize('woreda_admin', 'subcity_admin'), getUsersByRole);
+router.get('/woreda/:woreda', authorize('system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'), getUsersByWoreda);
+router.get('/role/:role', authorize('system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'), getUsersByRole);
 
 module.exports = router;

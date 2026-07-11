@@ -25,7 +25,7 @@ const buildParticipants = async (emails = [], roles = [], woreda) => {
     .filter(Boolean);
 
   const includeAllRoles = normalizedRoles.includes('all');
-  const allowedRoles = ['resident', 'officer', 'woreda_admin', 'subcity_admin'];
+  const allowedRoles = ['resident', 'officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'];
   const selectedRoles = normalizedRoles.filter((role) => allowedRoles.includes(role));
 
   let roleUsers = [];
@@ -94,7 +94,7 @@ exports.getMeetings = async (req, res, next) => {
 // @access  Private (Woreda Admin / Sub-City Admin)
 exports.createMeeting = async (req, res, next) => {
   try {
-    if (req.user.role !== 'woreda_admin' && req.user.role !== 'subcity_admin') {
+    if (!['woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
 
@@ -107,6 +107,9 @@ exports.createMeeting = async (req, res, next) => {
       participantRoles,
       woreda
     } = req.body;
+
+    const region = req.user.region || req.body.region;
+    const subcity = req.user.subcity || req.body.subcity;
 
     if (!title || !meetingLink || !scheduledAt) {
       return next(new ErrorResponse('Please fill in all required fields', 400));
@@ -139,6 +142,8 @@ exports.createMeeting = async (req, res, next) => {
       description,
       meetingLink,
       scheduledAt,
+      region,
+      subcity,
       woreda: meetingScope,
       createdBy: req.user.id,
       participants
@@ -195,7 +200,7 @@ exports.updateMeeting = async (req, res, next) => {
       return next(new ErrorResponse('Meeting not found', 404));
     }
 
-    if (req.user.role !== 'woreda_admin' && req.user.role !== 'subcity_admin') {
+    if (!['woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
 
@@ -205,7 +210,7 @@ exports.updateMeeting = async (req, res, next) => {
 
     const updates = { ...req.body };
 
-    if (req.user.role === 'subcity_admin' && !updates.woreda) {
+    if (['subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role) && !updates.woreda) {
       updates.woreda = meeting.woreda;
     }
 
@@ -264,7 +269,7 @@ exports.deleteMeeting = async (req, res, next) => {
       return next(new ErrorResponse('Meeting not found', 404));
     }
 
-    if (req.user.role !== 'woreda_admin' && req.user.role !== 'subcity_admin') {
+    if (!['woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
 

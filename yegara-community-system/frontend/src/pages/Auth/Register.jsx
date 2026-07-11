@@ -6,11 +6,16 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/Layout/Navbar';
 import { WOREDA_LIST } from '../../utils/woredas';
 
+const REGION_OPTIONS = Array.from({ length: 12 }, (_, index) => `Region ${String(index + 1).padStart(2, '0')}`);
+const SUBCITY_OPTIONS = Array.from({ length: 12 }, (_, index) => `Sub city ${String(index + 1).padStart(2, '0')}`);
+
 const Register = () => {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
 
   const woredaOptions = [...WOREDA_LIST, 'Other'];
+  const regionOptions = [...REGION_OPTIONS, 'Other'];
+  const subcityOptions = [...SUBCITY_OPTIONS, 'Other'];
 
   const {
     register,
@@ -37,6 +42,10 @@ const Register = () => {
       password: data.password,
       phone: data.phone || undefined,
       role: 'resident',
+      region: data.region || undefined,
+      customRegionName: data.customRegionName || undefined,
+      subcity: data.subcity || undefined,
+      customSubcityName: data.customSubcityName || undefined,
       woreda: data.woreda || undefined,
       customWoredaName: data.customWoredaName || undefined
     };
@@ -114,6 +123,72 @@ const Register = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-slate-700">Region</label>
+                <select
+                  className="input mt-1"
+                  {...register('region', { required: 'Region is required' })}
+                >
+                  <option value="">Select region</option>
+                  {regionOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {errors.region && (
+                  <p className="mt-1 text-sm text-red-600">{errors.region.message}</p>
+                )}
+              </div>
+
+              {watch('region') === 'Other' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Region name</label>
+                  <input
+                    type="text"
+                    className="input mt-1"
+                    placeholder="Enter your region"
+                    {...register('customRegionName', { required: 'Region name is required' })}
+                  />
+                  {errors.customRegionName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.customRegionName.message}</p>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Sub city</label>
+                <select
+                  className="input mt-1"
+                  {...register('subcity', { required: 'Sub city is required' })}
+                >
+                  <option value="">Select sub city</option>
+                  {subcityOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {errors.subcity && (
+                  <p className="mt-1 text-sm text-red-600">{errors.subcity.message}</p>
+                )}
+              </div>
+
+              {watch('subcity') === 'Other' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Sub city name</label>
+                  <input
+                    type="text"
+                    className="input mt-1"
+                    placeholder="Enter your sub city"
+                    {...register('customSubcityName', { required: 'Sub city name is required' })}
+                  />
+                  {errors.customSubcityName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.customSubcityName.message}</p>
+                  )}
+                </div>
+              )}
+
+              <div>
                 <label className="block text-sm font-medium text-slate-700">Woreda</label>
                 <select
                   className="input mt-1"
@@ -176,7 +251,7 @@ const Register = () => {
               </div>
 
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-700">
-                This registration is for residents only. Officers and admins are created by woreda leadership.
+                This registration is for residents only. Officers and admins are created by the administrative hierarchy.
               </div>
 
               <button

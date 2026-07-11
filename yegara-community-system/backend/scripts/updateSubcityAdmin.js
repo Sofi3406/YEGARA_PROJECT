@@ -5,10 +5,10 @@ const User = require('../models/User');
 dotenv.config();
 
 const ADMIN_UPDATE = {
-  fullName: 'Sofiya Yasin',
-  email: 'sofiyasin190@gmail.com',
+  fullName: 'System Admin',
+  email: 'yegara@gmail.com',
   password: 'Yegara@123',
-  role: 'subcity_admin',
+  role: 'system_admin',
   isActive: true
 };
 
@@ -19,9 +19,9 @@ const run = async () => {
       useUnifiedTopology: true
     });
 
-    const user = await User.findOne({ email: ADMIN_UPDATE.email }).select('+password');
+    const user = await User.findOne({ $or: [{ email: ADMIN_UPDATE.email }, { role: 'system_admin' }] }).select('+password');
     if (!user) {
-      console.error('User not found. No changes were made.');
+      console.error('System admin user not found. No changes were made.');
       process.exit(1);
     }
 
@@ -31,10 +31,10 @@ const run = async () => {
     user.password = ADMIN_UPDATE.password;
 
     await user.save();
-    console.log('Subcity admin user updated successfully.');
+    console.log('System admin user updated successfully.');
     process.exit(0);
   } catch (error) {
-    console.error('Failed to update subcity admin user:', error.message);
+    console.error('Failed to update system admin user:', error.message);
     process.exit(1);
   }
 };

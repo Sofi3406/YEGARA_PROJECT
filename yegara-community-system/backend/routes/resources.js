@@ -15,12 +15,12 @@ router.use(authenticate);
 
 router.route('/')
   .get(getResources)
-  .post(authorize('officer', 'woreda_admin', 'subcity_admin'), upload.single('file'), createResource);
+  .post(authorize('officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), upload.single('file'), createResource);
 
 router.route('/:id')
   .get(getResource)
-  .put(authorize('officer', 'woreda_admin', 'subcity_admin'), upload.single('file'), updateResource)
-  .delete(authorize('officer', 'woreda_admin', 'subcity_admin'), deleteResource);
+  .put(authorize('officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), upload.single('file'), updateResource)
+  .delete(authorize('officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), deleteResource);
 
 router.get('/:id/download', downloadResource);
 

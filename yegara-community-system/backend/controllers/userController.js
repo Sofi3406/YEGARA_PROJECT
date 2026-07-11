@@ -3,24 +3,24 @@ const { createActivationToken, buildActivationUrl } = require('../utils/activati
 const ErrorResponse = require('../utils/errorResponse');
 const sendEmail = require('../utils/emailService');
 const { buildWoredaRegex, isSameWoreda } = require('../utils/woreda');
+const {
+  canAccessUser,
+  isValidAdminAssignment,
+  prepareManagedUserPayload,
+  scopeQueryForUser,
+  normalizeScopeValue
+} = require('../utils/adminHierarchy');
 
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private (Admin)
 exports.getUsers = async (req, res, next) => {
   try {
-    // Only admins can see all users
-    if (req.user.role !== 'subcity_admin' && req.user.role !== 'woreda_admin') {
+    if (!['system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
-    let query = {};
-    
-    // Woreda admins can only see users in their woreda
-    if (req.user.role === 'woreda_admin') {
-      const woredaRegex = buildWoredaRegex(req.user.woreda);
-      query.woreda = woredaRegex ? { $regex: woredaRegex } : req.user.woreda;
-    }
+    let query = scopeQueryForUser(req.user);
     
     // Filter by role if specified
     if (req.query.role) {
@@ -32,12 +32,15 @@ exports.getUsers = async (req, res, next) => {
       query.department = req.query.department;
     }
 
-    // Sub-city admins can filter by woreda
-    if (
-      req.user.role === 'subcity_admin' &&
-      req.query.woreda &&
-      req.query.woreda !== 'all'
-    ) {
+    if (req.query.region && req.query.region !== 'all') {
+      query.region = normalizeScopeValue(req.query.region);
+    }
+
+    if (req.query.subcity && req.query.subcity !== 'all') {
+      query.subcity = normalizeScopeValue(req.query.subcity);
+    }
+
+    if (req.query.woreda && req.query.woreda !== 'all') {
       const woredaRegex = buildWoredaRegex(req.query.woreda);
       query.woreda = woredaRegex ? { $regex: woredaRegex } : req.query.woreda;
     }
@@ -70,8 +73,7 @@ exports.getUser = async (req, res, next) => {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
-    // Woreda admin can only see users in their woreda
-    if (req.user.role === 'woreda_admin' && !isSameWoreda(user.woreda, req.user.woreda)) {
+    if (!canAccessUser(req.user, user)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
@@ -89,32 +91,20 @@ exports.getUser = async (req, res, next) => {
 // @access  Private (Admin)
 exports.createUser = async (req, res, next) => {
   try {
-    // Check permissions
-    if (req.user.role !== 'subcity_admin' && req.user.role !== 'woreda_admin') {
+    if (!['system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized to create users', 403));
     }
     
-    const { email, role, woreda, department } = req.body;
+    const { email, role } = req.body;
     
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new ErrorResponse('User already exists', 400));
     }
-    
-    // Woreda admins can only create users in their woreda
-    if (req.user.role === 'woreda_admin' && !isSameWoreda(woreda, req.user.woreda)) {
-      return next(new ErrorResponse('Can only create users in your woreda', 403));
-    }
-    
-    // Sub-city admins can only create woreda admins
-    if (req.user.role === 'subcity_admin' && role !== 'woreda_admin') {
-      return next(new ErrorResponse('Can only create woreda admins', 403));
-    }
-    
-    // Woreda admins can only create department officers
-    if (req.user.role === 'woreda_admin' && role !== 'officer') {
-      return next(new ErrorResponse('Can only create department officers', 403));
+
+    if (!isValidAdminAssignment(req.user, role)) {
+      return next(new ErrorResponse('Can only create the next level admin role', 403));
     }
     
     // Generate password and access code
@@ -122,15 +112,15 @@ exports.createUser = async (req, res, next) => {
     const accessCode = role === 'officer' ? User.generateAccessCode() : undefined;
     const { plainToken, activationToken, activationExpire } = createActivationToken();
 
-    const userData = {
+    const userData = prepareManagedUserPayload(req.user, {
       ...req.body,
       password: tempPassword,
       accessCode,
-      isActive: false, // Requires activation
-      mustChangePassword: role === 'woreda_admin',
+      isActive: false,
+      mustChangePassword: role !== 'officer',
       activationToken,
       activationExpire
-    };
+    });
 
     const user = await User.create(userData);
 
@@ -159,6 +149,8 @@ exports.createUser = async (req, res, next) => {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        region: user.region,
+        subcity: user.subcity,
         woreda: user.woreda,
         department: user.department,
         customDepartment: user.customDepartment
@@ -186,8 +178,7 @@ exports.updateUser = async (req, res, next) => {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
-    // Woreda admin can only update users in their woreda
-    if (req.user.role === 'woreda_admin' && !isSameWoreda(user.woreda, req.user.woreda)) {
+    if (!canAccessUser(req.user, user)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
@@ -220,13 +211,11 @@ exports.deleteUser = async (req, res, next) => {
       return next(new ErrorResponse('User not found', 404));
     }
     
-    // Check permissions
-    if (req.user.role !== 'subcity_admin' && req.user.role !== 'woreda_admin') {
+    if (!['system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
-    // Woreda admin can only delete users in their woreda
-    if (req.user.role === 'woreda_admin' && !isSameWoreda(user.woreda, req.user.woreda)) {
+    if (!canAccessUser(req.user, user)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
@@ -252,12 +241,11 @@ exports.deleteUser = async (req, res, next) => {
 // @access  Private (Admin)
 exports.getUsersByWoreda = async (req, res, next) => {
   try {
-    // Only admins can access
-    if (req.user.role !== 'subcity_admin' && req.user.role !== 'woreda_admin') {
+    if (!['system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
-    
-    if (req.user.role === 'woreda_admin' && !isSameWoreda(req.params.woreda, req.user.woreda)) {
+
+    if (!canAccessUser(req.user, { region: req.user.region, subcity: req.user.subcity, woreda: req.params.woreda })) {
       return next(new ErrorResponse('Not authorized', 403));
     }
 
@@ -280,18 +268,13 @@ exports.getUsersByWoreda = async (req, res, next) => {
 // @access  Private (Admin)
 exports.getUsersByRole = async (req, res, next) => {
   try {
-    // Only admins can access
-    if (req.user.role !== 'subcity_admin' && req.user.role !== 'woreda_admin') {
+    if (!['system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
     
     let query = { role: req.params.role };
-    
-    // Woreda admin can only see users in their woreda
-    if (req.user.role === 'woreda_admin') {
-      const woredaRegex = buildWoredaRegex(req.user.woreda);
-      query.woreda = woredaRegex ? { $regex: woredaRegex } : req.user.woreda;
-    }
+
+    query = { ...query, ...scopeQueryForUser(req.user) };
     
     const users = await User.find(query).select('-password');
     

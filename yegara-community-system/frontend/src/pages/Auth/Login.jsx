@@ -35,6 +35,12 @@ const Login = () => {
         case 'subcity_admin':
           navigate('/subcity-admin/dashboard');
           break;
+        case 'regional_admin':
+          navigate('/regional-admin/dashboard');
+          break;
+        case 'system_admin':
+          navigate('/system-admin/dashboard');
+          break;
         default:
           navigate('/');
       }

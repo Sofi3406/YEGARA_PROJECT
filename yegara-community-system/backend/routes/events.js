@@ -29,10 +29,10 @@ router.use(authenticate);
 
 router.route('/')
   .get(getEvents)
-  .post(authorize('woreda_admin', 'subcity_admin'), upload.array('images', 5), createEvent);
+  .post(authorize('woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), upload.array('images', 5), createEvent);
 
-router.get('/organizer/me', authorize('woreda_admin', 'subcity_admin'), getMyOrganizedEvents);
-router.get('/registerable', authorize('officer', 'woreda_admin'), getRegisterableEvents);
+router.get('/organizer/me', authorize('woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), getMyOrganizedEvents);
+router.get('/registerable', authorize('officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), getRegisterableEvents);
 router.get('/woreda/:woreda', getEventsByWoreda);
 
 router.get('/:id/registrations', getEventRegistrations);
@@ -40,7 +40,7 @@ router.get('/:id/my-ticket', getMyEventTicket);
 
 router.route('/:id')
   .get(getEvent)
-  .put(authorize('woreda_admin', 'subcity_admin'), upload.array('images', 5), updateEvent)
-  .delete(authorize('woreda_admin', 'subcity_admin'), deleteEvent);
+  .put(authorize('woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), upload.array('images', 5), updateEvent)
+  .delete(authorize('woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'), deleteEvent);
 
 module.exports = router;

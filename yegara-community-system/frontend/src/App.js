@@ -86,14 +86,18 @@ const Layout = ({ children }) => {
     '/resident',
     '/officer',
     '/woreda-admin',
+    '/regional-admin',
     '/subcity-admin',
+    '/system-admin',
   ];
 
   const compactFooterRoles = new Set([
     'resident',
     'officer',
     'woreda_admin',
+    'regional_admin',
     'subcity_admin',
+    'system_admin',
   ]);
 
   const compactSharedRoutes = new Set(['/profile', '/profile/edit']);
@@ -194,7 +198,7 @@ function App() {
           <Route
             path="/woreda-admin/*"
             element={
-              <ProtectedRoute allowedRoles={['woreda_admin']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'regional_admin', 'subcity_admin', 'woreda_admin']}>
                 <Layout>
                   <Routes>
                     <Route path="dashboard" element={<WoredaAdminDashboard />} />
@@ -213,9 +217,49 @@ function App() {
           />
 
           <Route
+            path="/regional-admin/*"
+            element={
+              <ProtectedRoute allowedRoles={['system_admin', 'regional_admin']}>
+                <Layout>
+                  <Routes>
+                    <Route path="dashboard" element={<AnalyticsDashboard />} />
+                    <Route path="reports" element={<SubCityAdminReports />} />
+                    <Route path="events" element={<SubCityAdminEvents />} />
+                    <Route path="meetings" element={<VirtualMeetings />} />
+                    <Route path="admins" element={<ManageWoredaAdmins />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="announcements" element={<OfficerAnnouncements />} />
+                    <Route path="profile" element={<Profile />} />
+                  </Routes>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/subcity-admin/*"
             element={
-              <ProtectedRoute allowedRoles={['subcity_admin']}>
+              <ProtectedRoute allowedRoles={['system_admin', 'regional_admin', 'subcity_admin']}>
+                <Layout>
+                  <Routes>
+                    <Route path="dashboard" element={<AnalyticsDashboard />} />
+                    <Route path="reports" element={<SubCityAdminReports />} />
+                    <Route path="events" element={<SubCityAdminEvents />} />
+                    <Route path="meetings" element={<VirtualMeetings />} />
+                    <Route path="admins" element={<ManageWoredaAdmins />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="announcements" element={<OfficerAnnouncements />} />
+                    <Route path="profile" element={<Profile />} />
+                  </Routes>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/system-admin/*"
+            element={
+              <ProtectedRoute allowedRoles={['system_admin']}>
                 <Layout>
                   <Routes>
                     <Route path="dashboard" element={<AnalyticsDashboard />} />

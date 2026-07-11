@@ -15,6 +15,14 @@ const meetingSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Meeting date is required']
   },
+  region: {
+    type: String,
+    trim: true
+  },
+  subcity: {
+    type: String,
+    trim: true
+  },
   woreda: {
     type: String,
     required: true

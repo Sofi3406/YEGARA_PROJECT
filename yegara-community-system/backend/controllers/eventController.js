@@ -98,7 +98,7 @@ const canViewEventRegistrations = (user, event) => {
     return true;
   }
 
-  return ['woreda_admin', 'subcity_admin'].includes(user.role);
+  return ['woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(user.role);
 };
 
 const serializeEventForUser = (event, user) => {
@@ -191,7 +191,7 @@ exports.getEvents = async (req, res, next) => {
 // @access  Private (Officer, Woreda Admin)
 exports.getRegisterableEvents = async (req, res, next) => {
   try {
-    if (!['officer', 'woreda_admin'].includes(req.user.role)) {
+    if (!['officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Only officers and woreda administrators can use this endpoint', 403));
     }
 
@@ -350,8 +350,10 @@ exports.getEvent = async (req, res, next) => {
 exports.createEvent = async (req, res, next) => {
   try {
     req.body.organizer = req.user.id;
+    req.body.region = req.user.region || req.body.region;
+    req.body.subcity = req.user.subcity || req.body.subcity;
 
-    if (req.user.role === 'subcity_admin' && !req.body.woreda) {
+    if (['subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role) && !req.body.woreda) {
       req.body.woreda = 'All Woredas';
     }
 

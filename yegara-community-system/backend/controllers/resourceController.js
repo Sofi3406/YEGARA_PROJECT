@@ -164,6 +164,8 @@ exports.getResource = async (req, res, next) => {
 exports.createResource = async (req, res, next) => {
   try {
     req.body.uploadedBy = req.user.id;
+    req.body.region = req.user.region;
+    req.body.subcity = req.user.subcity;
 
     if (req.user.woreda && !req.body.woreda) {
       req.body.woreda = req.user.woreda;
@@ -202,7 +204,7 @@ exports.updateResource = async (req, res, next) => {
       return next(new ErrorResponse('Resource not found', 404));
     }
 
-    if (resource.uploadedBy.toString() !== req.user.id && req.user.role !== 'subcity_admin') {
+    if (resource.uploadedBy.toString() !== req.user.id && !['subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized to update this resource', 403));
     }
 
@@ -238,7 +240,7 @@ exports.deleteResource = async (req, res, next) => {
       return next(new ErrorResponse('Resource not found', 404));
     }
 
-    if (resource.uploadedBy.toString() !== req.user.id && req.user.role !== 'subcity_admin') {
+    if (resource.uploadedBy.toString() !== req.user.id && !['subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized to delete this resource', 403));
     }
 

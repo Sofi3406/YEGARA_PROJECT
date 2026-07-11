@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { usersAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 import {
   PortalPage,
   PortalHero,
@@ -14,6 +15,7 @@ import {
 } from '../../components/portal/PortalPageShell';
 
 const UserManagement = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('all');
@@ -26,12 +28,16 @@ const UserManagement = () => {
     email: '',
     phone: '',
     role: 'resident',
+    region: '',
+    subcity: '',
     woreda: '',
     department: '',
     customDepartment: '',
     accessCode: '',
     isActive: false
   });
+
+  const canDeleteUsers = !['system_admin', 'subcity_admin'].includes(user?.role);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -51,7 +57,7 @@ const UserManagement = () => {
   const fetchWoredaOptions = async () => {
     try {
       const response = await usersAPI.getAll();
-      const woredas = [...new Set((response.data.data || []).map((user) => user.woreda).filter(Boolean))].sort(
+      const woredas = [...new Set((response.data.data || []).map((item) => item.woreda).filter(Boolean))].sort(
         (a, b) => a.localeCompare(b)
       );
       setWoredaOptions(['all', ...woredas]);
@@ -61,7 +67,9 @@ const UserManagement = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!canDeleteUsers) return;
     if (!window.confirm('Delete this user account?')) return;
+
     try {
       await usersAPI.delete(id);
       toast.success('User deleted successfully');
@@ -72,18 +80,20 @@ const UserManagement = () => {
     }
   };
 
-  const handleOpenEdit = (user) => {
-    setEditingUser(user);
+  const handleOpenEdit = (selectedUser) => {
+    setEditingUser(selectedUser);
     setEditForm({
-      fullName: user.fullName || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      role: user.role || 'resident',
-      woreda: user.woreda || '',
-      department: user.department || '',
-      customDepartment: user.customDepartment || '',
-      accessCode: user.accessCode || '',
-      isActive: Boolean(user.isActive)
+      fullName: selectedUser.fullName || '',
+      email: selectedUser.email || '',
+      phone: selectedUser.phone || '',
+      role: selectedUser.role || 'resident',
+      region: selectedUser.region || '',
+      subcity: selectedUser.subcity || '',
+      woreda: selectedUser.woreda || '',
+      department: selectedUser.department || '',
+      customDepartment: selectedUser.customDepartment || '',
+      accessCode: selectedUser.accessCode || '',
+      isActive: Boolean(selectedUser.isActive)
     });
   };
 
@@ -94,6 +104,8 @@ const UserManagement = () => {
       email: '',
       phone: '',
       role: 'resident',
+      region: '',
+      subcity: '',
       woreda: '',
       department: '',
       customDepartment: '',
@@ -111,7 +123,20 @@ const UserManagement = () => {
       return;
     }
 
-    if ((editForm.role === 'resident' || editForm.role === 'woreda_admin') && !editForm.woreda) {
+    if (
+      ['resident', 'officer', 'woreda_admin', 'subcity_admin', 'regional_admin'].includes(editForm.role) &&
+      !editForm.region
+    ) {
+      toast.error('Region is required for this role');
+      return;
+    }
+
+    if (['resident', 'officer', 'woreda_admin', 'subcity_admin'].includes(editForm.role) && !editForm.subcity) {
+      toast.error('Sub city is required for this role');
+      return;
+    }
+
+    if (['resident', 'officer', 'woreda_admin'].includes(editForm.role) && !editForm.woreda) {
       toast.error('Woreda is required for this role');
       return;
     }
@@ -139,7 +164,21 @@ const UserManagement = () => {
       isActive: editForm.isActive
     };
 
-    if (editForm.role === 'resident' || editForm.role === 'woreda_admin') {
+    if (['resident', 'woreda_admin'].includes(editForm.role)) {
+      payload.region = editForm.region;
+      payload.subcity = editForm.subcity;
+      payload.woreda = editForm.woreda;
+    }
+
+    if (['officer', 'subcity_admin', 'regional_admin'].includes(editForm.role)) {
+      payload.region = editForm.region;
+    }
+
+    if (['officer', 'woreda_admin', 'subcity_admin'].includes(editForm.role)) {
+      payload.subcity = editForm.subcity;
+    }
+
+    if (['officer', 'woreda_admin'].includes(editForm.role)) {
       payload.woreda = editForm.woreda;
     }
 
@@ -163,6 +202,8 @@ const UserManagement = () => {
   };
 
   const roleLabel = (role) => {
+    if (role === 'system_admin') return 'System Admin';
+    if (role === 'regional_admin') return 'Regional Admin';
     if (role === 'subcity_admin') return 'Sub city Admin';
     if (role === 'woreda_admin') return 'Woreda Admin';
     if (role === 'officer') return 'Officer';
@@ -183,11 +224,11 @@ const UserManagement = () => {
     if (!needle) return users;
 
     return users.filter(
-      (user) =>
-        user.fullName?.toLowerCase().includes(needle) ||
-        user.email?.toLowerCase().includes(needle) ||
-        user.woreda?.toLowerCase().includes(needle) ||
-        user.department?.toLowerCase().includes(needle)
+      (item) =>
+        item.fullName?.toLowerCase().includes(needle) ||
+        item.email?.toLowerCase().includes(needle) ||
+        item.woreda?.toLowerCase().includes(needle) ||
+        item.department?.toLowerCase().includes(needle)
     );
   }, [users, searchTerm]);
 
@@ -202,12 +243,10 @@ const UserManagement = () => {
       <PortalFormPanel title="Find users">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <PortalField label="Filter by role">
-            <select
-              className="input mt-0"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
+            <select className="input mt-0" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
               <option value="all">All roles</option>
+              <option value="system_admin">System Admin</option>
+              <option value="regional_admin">Regional Admin</option>
               <option value="subcity_admin">Sub city Admin</option>
               <option value="woreda_admin">Woreda Admin</option>
               <option value="officer">Officer</option>
@@ -215,11 +254,7 @@ const UserManagement = () => {
             </select>
           </PortalField>
           <PortalField label="Filter by woreda">
-            <select
-              className="input mt-0"
-              value={woredaFilter}
-              onChange={(e) => setWoredaFilter(e.target.value)}
-            >
+            <select className="input mt-0" value={woredaFilter} onChange={(e) => setWoredaFilter(e.target.value)}>
               {woredaOptions.map((woreda) => (
                 <option key={woreda} value={woreda}>
                   {woreda === 'all' ? 'All woredas' : woreda}
@@ -245,52 +280,66 @@ const UserManagement = () => {
           <PortalEmpty message="No users found for the selected filters." />
         ) : (
           <div className="officer-table-wrap overflow-x-auto">
-            <table className="officer-table min-w-[900px]">
+            <table className="officer-table min-w-[840px]">
               <thead>
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>Region</th>
+                  <th>Sub city</th>
                   <th>Woreda</th>
                   <th>Department</th>
                   <th>Status</th>
-                  <th />
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user._id}>
-                    <td>{user.fullName}</td>
-                    <td>{user.email}</td>
+                {filteredUsers.map((item) => (
+                  <tr key={item._id}>
+                    <td>{item.fullName}</td>
+                    <td>{item.email}</td>
                     <td>
-                      <span className="officer-chip">{roleLabel(user.role)}</span>
+                      <span className="officer-chip">{roleLabel(item.role)}</span>
                     </td>
-                    <td>{user.woreda || '—'}</td>
-                    <td>{user.department || '—'}</td>
+                    <td>{item.region || '—'}</td>
+                    <td>{item.subcity || '—'}</td>
+                    <td>{item.woreda || '—'}</td>
+                    <td>{item.department || '—'}</td>
                     <td>
                       <span
                         className={`officer-status ${
-                          user.isActive ? 'officer-status--resolved' : 'officer-status--pending'
+                          item.isActive ? 'officer-status--resolved' : 'officer-status--pending'
                         }`}
                       >
-                        {user.isActive ? 'Active' : 'Pending'}
+                        {item.isActive ? 'Active' : 'Pending'}
                       </span>
                     </td>
-                    <td className="text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(user)}
-                        className="officer-btn officer-btn--outline mr-2"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(user._id)}
-                        className="officer-btn officer-btn--danger-outline"
-                      >
-                        Delete
-                      </button>
+                    <td className="whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(item)}
+                          className="officer-btn officer-btn--outline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item._id)}
+                          disabled={!canDeleteUsers}
+                          title={
+                            canDeleteUsers
+                              ? 'Delete user'
+                              : 'Delete is not available for this admin role'
+                          }
+                          className={`officer-btn officer-btn--danger-outline ${
+                            !canDeleteUsers ? 'cursor-not-allowed opacity-50' : ''
+                          }`}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -339,6 +388,8 @@ const UserManagement = () => {
                     value={editForm.role}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                   >
+                    <option value="system_admin">System Admin</option>
+                    <option value="regional_admin">Regional Admin</option>
                     <option value="subcity_admin">Sub city Admin</option>
                     <option value="woreda_admin">Woreda Admin</option>
                     <option value="officer">Officer</option>
@@ -346,7 +397,27 @@ const UserManagement = () => {
                   </select>
                 </PortalField>
 
-                {(editForm.role === 'resident' || editForm.role === 'woreda_admin') && (
+                {editForm.role !== 'system_admin' && (
+                  <PortalField label="Region">
+                    <input
+                      className="input mt-0"
+                      value={editForm.region}
+                      onChange={(e) => setEditForm({ ...editForm, region: e.target.value })}
+                    />
+                  </PortalField>
+                )}
+
+                {['resident', 'officer', 'woreda_admin', 'subcity_admin'].includes(editForm.role) && (
+                  <PortalField label="Sub city">
+                    <input
+                      className="input mt-0"
+                      value={editForm.subcity}
+                      onChange={(e) => setEditForm({ ...editForm, subcity: e.target.value })}
+                    />
+                  </PortalField>
+                )}
+
+                {['resident', 'officer', 'woreda_admin'].includes(editForm.role) && (
                   <PortalField label="Woreda">
                     <input
                       className="input mt-0"
@@ -400,9 +471,7 @@ const UserManagement = () => {
                   <select
                     className="input mt-0"
                     value={editForm.isActive ? 'active' : 'pending'}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, isActive: e.target.value === 'active' })
-                    }
+                    onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === 'active' })}
                   >
                     <option value="active">Active</option>
                     <option value="pending">Pending</option>

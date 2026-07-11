@@ -75,7 +75,7 @@ exports.createAnnouncement = async (req, res, next) => {
       return next(new ErrorResponse('Please fill in all required fields', 400));
     }
 
-    if (!['officer', 'woreda_admin', 'subcity_admin'].includes(req.user.role)) {
+    if (!['officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
 
@@ -91,12 +91,14 @@ exports.createAnnouncement = async (req, res, next) => {
       category: category || 'General',
       image: req.file ? req.file.path.replace(/\\/g, '/') : undefined,
       audienceRoles: normalizedRoles.length ? normalizedRoles : ['all'],
+      region: req.user.region || req.body.region,
+      subcity: req.user.subcity || req.body.subcity,
       woreda: req.user.role === 'woreda_admin' ? req.user.woreda : woreda,
       createdBy: req.user.id
     });
 
     const recipientFilter = {
-      role: { $in: normalizedRoles.includes('all') ? ['resident', 'officer', 'woreda_admin', 'subcity_admin'] : normalizedRoles }
+      role: { $in: normalizedRoles.includes('all') ? ['resident', 'officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'] : normalizedRoles }
     };
 
     if (announcement.woreda) {
@@ -153,7 +155,7 @@ exports.deleteAnnouncement = async (req, res, next) => {
       return next(new ErrorResponse('Announcement not found', 404));
     }
 
-    if (!['officer', 'woreda_admin', 'subcity_admin'].includes(req.user.role)) {
+    if (!['officer', 'woreda_admin', 'subcity_admin', 'regional_admin', 'system_admin'].includes(req.user.role)) {
       return next(new ErrorResponse('Not authorized', 403));
     }
 
